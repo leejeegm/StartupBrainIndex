@@ -2,8 +2,10 @@
 FastAPI 메인 애플리케이션
 """
 import os
+import sys
 import secrets
 import random
+import traceback
 from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
@@ -41,9 +43,14 @@ async def allow_mobile_and_all_devices(request: Request, call_next):
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# 전역 데이터 로더 및 채점 엔진 초기화
-data_loader = SurveyDataLoader()
-scoring_engine = ScoringEngine(data_loader)
+# 전역 데이터 로더 및 채점 엔진 초기화 (실패 시 로그에 traceback 출력 후 재발생)
+try:
+    data_loader = SurveyDataLoader()
+    scoring_engine = ScoringEngine(data_loader)
+except Exception as e:
+    print("[SBI startup error]", file=sys.stderr)
+    traceback.print_exc(file=sys.stderr)
+    raise
 
 
 def get_current_user(request: Request) -> Optional[Dict]:

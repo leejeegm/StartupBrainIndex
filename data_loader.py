@@ -26,6 +26,10 @@ class SurveyDataLoader:
     
     def _load_data(self):
         """CSV 파일 로드 및 구조화"""
+        if not os.path.isfile(self.csv_path):
+            raise FileNotFoundError(
+                f"survey_items.csv not found at {self.csv_path!r} (cwd={os.getcwd()!r})"
+            )
         # UTF-8 우선, 실패 시 cp949 (한국어 Windows 저장)
         try:
             self.df = pd.read_csv(self.csv_path, encoding='utf-8')
