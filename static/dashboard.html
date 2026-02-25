@@ -83,6 +83,12 @@
       <div class="mt-6 sm:mt-8 pt-4 border-t border-violet-100">
         <button type="button" id="btn-save" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-panel hover:bg-accent-100 text-slate-700 text-xs sm:text-base lg:text-lg">저장·불러오기</button>
       </div>
+      <div id="admin-restore-data-wrap" class="hidden mt-3 pt-4 border-t border-violet-100 space-y-2">
+        <p class="text-xs text-slate-500 px-1 mb-1">백업·복원 범위: 회원/로그인·프로필, 설문·결과 저장, AI 상담 저장, 뇌파 저장, 게시판, 지표 공식 (전체)</p>
+        <button type="button" id="btn-admin-backup-db" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 text-xs sm:text-base lg:text-lg">배포 전 데이터 백업</button>
+        <button type="button" id="btn-admin-restore-db" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-violet-100 text-violet-800 hover:bg-violet-200 text-xs sm:text-base lg:text-lg">기존 데이터 불러오기</button>
+        <button type="button" id="btn-admin-export-excel" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 text-xs sm:text-base lg:text-lg">데이터 확인 (엑셀 다운로드)</button>
+      </div>
       <div class="mt-3 sm:mt-4">
         <a href="#" data-step="5" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-xs sm:text-base lg:text-lg"><span id="step-label-5" class="hidden sm:inline">게시판 및 자료실</span><span id="step-label-5-short" class="sm:hidden">게시판</span></a>
       </div>
@@ -416,6 +422,31 @@
     </div>
   </div>
 
+  <!-- 관리자: 기존 데이터 불러오기 모달 (SQLite 백업 업로드) -->
+  <div id="modal-admin-restore-db" class="fixed inset-0 z-50 hidden bg-black/50" aria-modal="true">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden flex flex-col border border-violet-100">
+        <div class="p-6 border-b border-violet-100">
+          <h3 class="text-xl font-bold text-violet-900">기존 데이터 불러오기</h3>
+          <p class="mt-2 text-violet-600 text-sm">재배포 등으로 DB가 초기화된 경우, 백업해 둔 .db 파일을 업로드하면 설문·상담·뇌파 저장 데이터를 복원할 수 있습니다. (50MB 이하 .db 파일)</p>
+        </div>
+        <div class="p-6">
+          <form id="form-admin-restore-db" class="space-y-4">
+            <label class="block">
+              <span class="text-slate-600 text-sm font-medium">DB 파일 선택</span>
+              <input type="file" id="input-restore-db" accept=".db" class="mt-1 block w-full text-sm text-slate-600 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-violet-100 file:text-violet-800 hover:file:bg-violet-200" />
+            </label>
+            <p id="restore-db-status" class="text-sm text-slate-500 hidden"></p>
+            <div class="flex gap-2">
+              <button type="submit" id="btn-restore-db-submit" class="flex-1 px-4 py-3 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-medium">업로드하여 복원</button>
+              <button type="button" id="modal-admin-restore-db-close" class="px-4 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50">닫기</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/static/sbi-lang.js"></script>
   <script>
     const API_BASE = '';
@@ -474,7 +505,7 @@
       if (ab) ab.textContent = D.adminBadge;
       var gt = document.getElementById('btn-goto-top');
       if (gt) gt.textContent = D.gotoTop;
-      var ids = ['admin-detail-close', 'modal-save-load-close', 'modal-eeg-list-close', 'modal-survey-load-close'];
+      var ids = ['admin-detail-close', 'modal-save-load-close', 'modal-eeg-list-close', 'modal-survey-load-close', 'modal-admin-restore-db-close'];
       ids.forEach(function(id) { var e = document.getElementById(id); if (e) e.textContent = D.close; });
       var m1 = document.getElementById('modal-save-load-title'); if (m1) m1.textContent = D.modalSaveLoadTitle;
       var m2 = document.getElementById('modal-eeg-list-title'); if (m2) m2.textContent = D.modalEegTitle;
@@ -504,6 +535,71 @@
         if (e.target.closest('#btn-save')) {
           e.preventDefault();
           if (typeof window._openSaveLoadModal === 'function') window._openSaveLoadModal();
+          return;
+        }
+        // 관리자: 데이터 확인 (엑셀 다운로드)
+        if (e.target.closest('#btn-admin-export-excel')) {
+          e.preventDefault();
+          (async function() {
+            try {
+              var res = await fetch(API_BASE + '/api/admin/export-excel', { credentials: 'same-origin' });
+              if (!res.ok) {
+                var err = await res.json().catch(function() { return {}; });
+                alert(err.detail || '엑셀 내보내기 실패 (' + res.status + ')');
+                return;
+              }
+              var blob = await res.blob();
+              var disp = res.headers.get('Content-Disposition');
+              var name = 'sbi_data_export.xlsx';
+              if (disp && /filename[^;=\n]*=([^;\n]*)/.test(disp)) name = (RegExp.$1 || '').replace(/^["']|["']$/g, '').trim() || name;
+              var a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = name;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            } catch (err) {
+              alert('엑셀 다운로드 오류: ' + (err.message || err));
+            }
+          })();
+          return;
+        }
+        // 관리자: 배포 전 데이터 백업 (경고 후 다운로드)
+        if (e.target.closest('#btn-admin-backup-db')) {
+          e.preventDefault();
+          var msg = '코드 푸시·재배포 시 서버 DB가 초기화될 수 있습니다.\n\n지금 DB를 백업해 두시면, 배포 후 「기존 데이터 불러오기」로 복원할 수 있습니다.\n\n지금 백업 파일을 다운로드할까요?';
+          if (!confirm(msg)) return;
+          (async function() {
+            try {
+              var res = await fetch(API_BASE + '/api/admin/backup-db', { credentials: 'same-origin' });
+              if (!res.ok) {
+                var err = await res.json().catch(function() { return {}; });
+                alert(err.detail || '백업 다운로드 실패 (' + res.status + ')');
+                return;
+              }
+              var blob = await res.blob();
+              var disp = res.headers.get('Content-Disposition');
+              var name = 'sbi_backup.db';
+              if (disp && /filename[^;=\n]*=([^;\n]*)/.test(disp)) name = (RegExp.$1 || '').replace(/^["']|["']$/g, '').trim() || name;
+              var a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = name;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            } catch (err) {
+              alert('백업 다운로드 오류: ' + (err.message || err));
+            }
+          })();
+          return;
+        }
+        // 관리자: 기존 데이터 불러오기 모달 열기
+        if (e.target.closest('#btn-admin-restore-db')) {
+          e.preventDefault();
+          var modal = document.getElementById('modal-admin-restore-db');
+          if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex', 'items-center', 'justify-center'); modal.setAttribute('aria-hidden', 'false'); }
+          var inp = document.getElementById('input-restore-db');
+          if (inp) inp.value = '';
+          var st = document.getElementById('restore-db-status');
+          if (st) { st.classList.add('hidden'); st.textContent = ''; }
           return;
         }
         // 간편 설문
@@ -1943,6 +2039,48 @@
     if (modalSurveyLoadClose) modalSurveyLoadClose.addEventListener('click', closeSurveyLoadModal);
     var modalSurveyLoad = document.getElementById('modal-survey-load');
     if (modalSurveyLoad) modalSurveyLoad.addEventListener('click', (e) => { if (e.target.id === 'modal-survey-load') closeSurveyLoadModal(); });
+    function closeAdminRestoreDbModal() {
+      var m = document.getElementById('modal-admin-restore-db');
+      if (m) { m.classList.add('hidden'); m.classList.remove('flex', 'items-center', 'justify-center'); m.setAttribute('aria-hidden', 'true'); }
+    }
+    var modalAdminRestoreDbClose = document.getElementById('modal-admin-restore-db-close');
+    if (modalAdminRestoreDbClose) modalAdminRestoreDbClose.addEventListener('click', closeAdminRestoreDbModal);
+    var modalAdminRestoreDb = document.getElementById('modal-admin-restore-db');
+    if (modalAdminRestoreDb) modalAdminRestoreDb.addEventListener('click', function(e) { if (e.target.id === 'modal-admin-restore-db') closeAdminRestoreDbModal(); });
+    var formAdminRestoreDb = document.getElementById('form-admin-restore-db');
+    if (formAdminRestoreDb) formAdminRestoreDb.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var inp = document.getElementById('input-restore-db');
+      var statusEl = document.getElementById('restore-db-status');
+      var submitBtn = document.getElementById('btn-restore-db-submit');
+      if (!inp || !inp.files || !inp.files.length) {
+        if (statusEl) { statusEl.textContent = 'DB 파일(.db)을 선택해 주세요.'; statusEl.classList.remove('hidden'); statusEl.classList.add('text-amber-600'); }
+        return;
+      }
+      var file = inp.files[0];
+      if (!file.name.toLowerCase().endsWith('.db')) {
+        if (statusEl) { statusEl.textContent = '.db 파일만 업로드할 수 있습니다.'; statusEl.classList.remove('hidden'); statusEl.classList.add('text-amber-600'); }
+        return;
+      }
+      if (statusEl) { statusEl.textContent = '업로드 중…'; statusEl.classList.remove('hidden', 'text-amber-600', 'text-red-600'); statusEl.classList.add('text-slate-600'); }
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        var fd = new FormData();
+        fd.append('file', file);
+        var res = await fetch(API_BASE + '/api/admin/restore-db', { method: 'POST', credentials: 'same-origin', body: fd });
+        var data = await res.json().catch(function() { return {}; });
+        if (!res.ok) {
+          if (statusEl) { statusEl.textContent = data.detail || '복원 실패 (' + res.status + ')'; statusEl.classList.remove('text-slate-600'); statusEl.classList.add('text-red-600'); }
+          return;
+        }
+        if (statusEl) { statusEl.textContent = data.message || '복원되었습니다.'; statusEl.classList.remove('text-slate-600', 'text-red-600'); statusEl.classList.add('text-green-600'); }
+        setTimeout(closeAdminRestoreDbModal, 1500);
+      } catch (err) {
+        if (statusEl) { statusEl.textContent = '오류: ' + (err.message || err); statusEl.classList.remove('text-slate-600'); statusEl.classList.add('text-red-600'); }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
     var surveyLoadSearchBtn = document.getElementById('survey-load-search-btn');
     if (surveyLoadSearchBtn) surveyLoadSearchBtn.addEventListener('click', fetchSurveySavedList);
     var surveyLoadSearch = document.getElementById('survey-load-search');
@@ -2317,6 +2455,8 @@
         if (userNameEl) userNameEl.textContent = u.email || u.name || '';
         var adminBadge = document.getElementById('admin-badge');
         if (adminBadge) adminBadge.classList.toggle('hidden', !currentUserIsAdmin);
+        var adminRestoreWrap = document.getElementById('admin-restore-data-wrap');
+        if (adminRestoreWrap) adminRestoreWrap.classList.toggle('hidden', !currentUserIsAdmin);
         document.querySelectorAll('[data-indicator-formula-admin-only]').forEach(function(el) {
           el.style.display = currentUserIsAdmin ? '' : 'none';
         });

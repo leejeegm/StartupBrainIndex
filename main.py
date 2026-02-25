@@ -4,8 +4,8 @@ FastAPI 메인 애플리케이션
 import os
 import secrets
 import random
-from fastapi import FastAPI, HTTPException, Request, Depends, Form
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, Form, File, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Optional, Any
 from starlette.middleware.sessions import SessionMiddleware
@@ -417,6 +417,177 @@ def _admin_only(request: Request):
     if not is_admin(user):
         raise HTTPException(status_code=403, detail="관리자만 이용할 수 있습니다.")
     return user
+
+
+# 최대 업로드 DB 파일 크기 (50MB)
+RESTORE_DB_MAX_BYTES = 50 * 1024 * 1024
+
+
+@app.post("/api/admin/restore-db")
+async def api_admin_restore_db(request: Request, file: UploadFile = File(...)):
+    """관리자 전용: 백업한 SQLite DB 파일(.db)을 업로드하여 현재 DB를 복원합니다. (현재 엔진이 SQLite일 때만 가능)"""
+    _admin_only(request)
+    from db import DB_ENGINE
+    if DB_ENGINE != "sqlite":
+        raise HTTPException(
+            status_code=400,
+            detail="현재 DB가 SQLite가 아니므로 이 방식으로 복원할 수 없습니다.",
+        )
+    fn = (file.filename or "").strip().lower()
+    if not fn.endswith(".db"):
+        raise HTTPException(status_code=400, detail=".db 파일만 업로드할 수 있습니다.")
+    content = await file.read()
+    if len(content) > RESTORE_DB_MAX_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"파일 크기는 {RESTORE_DB_MAX_BYTES // (1024*1024)}MB 이하여야 합니다.",
+        )
+    from db import SQLITE_DB_PATH
+    import tempfile
+    tmp = None
+    try:
+        fd, tmp = tempfile.mkstemp(suffix=".db", prefix="sbi_restore_")
+        try:
+            os.write(fd, content)
+        finally:
+            os.close(fd)
+        os.replace(tmp, SQLITE_DB_PATH)
+        tmp = None
+        return {"ok": True, "message": "데이터베이스가 복원되었습니다. 목록을 새로고침하면 반영됩니다."}
+    except Exception as e:
+        if tmp and os.path.exists(tmp):
+            try:
+                os.unlink(tmp)
+            except Exception:
+                pass
+        raise HTTPException(status_code=500, detail=f"복원 중 오류: {e}")
+
+
+@app.get("/api/admin/backup-db")
+async def api_admin_backup_db(request: Request):
+    """관리자 전용: 현재 SQLite DB 파일을 다운로드합니다. (배포 전 백업용, SQLite일 때만)"""
+    _admin_only(request)
+    from db import DB_ENGINE
+    if DB_ENGINE != "sqlite":
+        raise HTTPException(
+            status_code=400,
+            detail="현재 DB가 SQLite가 아니므로 이 방식으로 백업할 수 없습니다.",
+        )
+    from db import SQLITE_DB_PATH
+    if not os.path.isfile(SQLITE_DB_PATH):
+        raise HTTPException(status_code=404, detail="DB 파일이 없습니다.")
+    from datetime import datetime
+    safe_name = f"sbi_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
+    return FileResponse(
+        path=SQLITE_DB_PATH,
+        filename=safe_name,
+        media_type="application/octet-stream",
+    )
+
+
+# 엑셀 내보내기 시 JSON 등 긴 컬럼 잘라낼 길이 (데이터 확인용)
+_EXCEL_TRUNCATE = 2000
+
+
+@app.get("/api/admin/export-excel")
+async def api_admin_export_excel(request: Request):
+    """관리자 전용: 회원·설문·상담·뇌파·게시판 등 전체 데이터를 엑셀(.xlsx)로 내보냅니다. (데이터 확인용, MySQL/SQLite/Postgres 공통)"""
+    _admin_only(request)
+    import io
+    from datetime import datetime
+    from db import get_conn, execute_all
+
+    buf = io.BytesIO()
+    try:
+        with get_conn() as conn:
+            # users (비밀번호 해시 제외)
+            users = execute_all(
+                conn,
+                "SELECT id, email, created_at, name, gender, age, occupation, nationality, "
+                "sleep_hours, sleep_hours_label, sleep_quality, meal_habit, bowel_habit, exercise_habit FROM users ORDER BY id",
+                (),
+            )
+            survey = execute_all(
+                conn,
+                "SELECT id, user_email, title, update_count, responses_json, required_sequences_json, excluded_sequences_json, created_at FROM survey_saves ORDER BY id",
+                (),
+            )
+            chat = execute_all(
+                conn,
+                "SELECT id, user_email, summary_title, messages_json, ai_notes_json, created_at FROM chat_saves ORDER BY id",
+                (),
+            )
+            eeg = execute_all(
+                conn,
+                "SELECT id, user_email, title, data_json, created_at FROM eeg_saves ORDER BY id",
+                (),
+            )
+            board = execute_all(
+                conn,
+                "SELECT id, type, title, content, created_at, updated_at FROM board ORDER BY id",
+                (),
+            )
+            formulas = execute_all(
+                conn,
+                "SELECT id, title, content, sort_order, created_at, updated_at FROM indicator_formulas ORDER BY sort_order, id",
+                (),
+            )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB 조회 실패: {e}")
+
+    def _trunc(s, max_len=_EXCEL_TRUNCATE):
+        if s is None:
+            return ""
+        t = str(s)
+        return t[:max_len] + ("…" if len(t) > max_len else "")
+
+    def _sheet_rows(rows, truncate_cols=None):
+        if not rows:
+            return []
+        truncate_cols = truncate_cols or set()
+        out = []
+        for r in rows:
+            out.append(
+                {k: _trunc(v) if k in truncate_cols else v for k, v in r.items()}
+            )
+        return out
+
+    import pandas as pd
+    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
+        if users:
+            pd.DataFrame(_sheet_rows(users)).to_excel(writer, sheet_name="users", index=False)
+        else:
+            pd.DataFrame(columns=["id", "email", "created_at"]).to_excel(writer, sheet_name="users", index=False)
+        if survey:
+            pd.DataFrame(_sheet_rows(survey, {"responses_json", "required_sequences_json", "excluded_sequences_json"})).to_excel(
+                writer, sheet_name="survey_saves", index=False
+            )
+        else:
+            pd.DataFrame(columns=["id", "user_email", "title", "update_count", "created_at"]).to_excel(writer, sheet_name="survey_saves", index=False)
+        if chat:
+            pd.DataFrame(_sheet_rows(chat, {"messages_json", "ai_notes_json"})).to_excel(writer, sheet_name="chat_saves", index=False)
+        else:
+            pd.DataFrame(columns=["id", "user_email", "summary_title", "created_at"]).to_excel(writer, sheet_name="chat_saves", index=False)
+        if eeg:
+            pd.DataFrame(_sheet_rows(eeg, {"data_json"})).to_excel(writer, sheet_name="eeg_saves", index=False)
+        else:
+            pd.DataFrame(columns=["id", "user_email", "title", "created_at"]).to_excel(writer, sheet_name="eeg_saves", index=False)
+        if board:
+            pd.DataFrame(_sheet_rows(board, {"content"})).to_excel(writer, sheet_name="board", index=False)
+        else:
+            pd.DataFrame(columns=["id", "type", "title", "created_at", "updated_at"]).to_excel(writer, sheet_name="board", index=False)
+        if formulas:
+            pd.DataFrame(_sheet_rows(formulas, {"content"})).to_excel(writer, sheet_name="indicator_formulas", index=False)
+        else:
+            pd.DataFrame(columns=["id", "title", "sort_order", "created_at", "updated_at"]).to_excel(writer, sheet_name="indicator_formulas", index=False)
+
+    buf.seek(0)
+    safe_name = f"sbi_data_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}"'},
+    )
 
 
 @app.get("/api/admin/tables/{table_name}")
