@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <title>관리자 - Startup Brain Index</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violet: { 100: '#ede9fe', 200: '#ddd6fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9', 800: '#5b21b6' },
+            primary: { 500: '#7c3aed', 600: '#6d28d9' }
+          },
+          fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/mobile-common.css" />
+  <style>
+    html { font-size: clamp(14px, 4vw, 20px); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { font-family: 'Noto Sans KR', sans-serif; -webkit-text-size-adjust: 100%; }
+    @media (max-width: 639px) { html { font-size: clamp(15px, 4.5vw, 18px); } }
+    .hero-gradient { background: linear-gradient(165deg, #faf5ff 0%, #f5f3ff 35%, #ede9fe 70%, #e9e5ff 100%); }
+    .card-shadow { box-shadow: 0 4px 6px -1px rgba(124, 58, 237, 0.08), 0 10px 20px -5px rgba(124, 58, 237, 0.06); }
+    .tab-active { background: #7c3aed; color: white; }
+    .tab-inactive { background: #ede9fe; color: #6d28d9; }
+    @media (max-width: 767px) {
+      button, .admin-tab, a.rounded-xl { min-height: 44px; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      .admin-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .admin-table { min-width: 600px; font-size: 0.875rem; }
+    }
+  </style>
+</head>
+<body class="min-h-screen hero-gradient text-slate-800">
+  <header class="bg-white/90 border-b border-violet-100 shadow-sm sticky top-0 z-20">
+    <div class="max-w-4xl mx-auto px-3 sm:px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <img src="/static/gameung_logo.jpg" alt="SBI" class="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-contain ring-2 ring-violet-200 shrink-0" />
+        <div class="min-w-0">
+          <h1 id="admin-h1" class="text-base sm:text-xl font-bold text-violet-900 truncate">관리자 화면</h1>
+          <p id="admin-subtitle" class="text-xs text-violet-600 truncate">DB 테이블 조회·삭제·수정</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button type="button" id="admin-lang-switch" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">EN</button>
+        <a href="/" id="admin-home-link" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm sm:text-base">홈</a>
+        <a href="/dashboard" id="admin-dashboard-link" class="px-3 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm sm:text-base font-medium">대시보드</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto p-3 sm:p-6 pb-24">
+    <div id="admin-forbidden" class="hidden bg-white rounded-2xl border border-violet-100 p-6 shadow-lg mb-6">
+      <p class="text-violet-800 font-medium">관리자 전용입니다. 관리자 계정으로 로그인한 뒤 이용하세요.</p>
+      <a href="/login?next=/admin" class="inline-block mt-4 px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 min-h-[44px] flex items-center justify-center">로그인</a>
+    </div>
+    <div id="admin-panel" class="hidden">
+      <div class="flex flex-wrap gap-2 sm:gap-3 mb-4">
+        <button type="button" data-tab="login" class="admin-tab tab-active px-3 py-2 rounded-xl text-sm sm:text-base">로그인·회원</button>
+        <button type="button" data-tab="survey_saves" class="admin-tab tab-inactive px-3 py-2 rounded-xl text-sm sm:text-base">설문저장·진단</button>
+        <button type="button" data-tab="chat_saves" class="admin-tab tab-inactive px-3 py-2 rounded-xl text-sm sm:text-base">대화저장</button>
+        <button type="button" data-tab="board" class="admin-tab tab-inactive px-3 py-2 rounded-xl text-sm sm:text-base">게시판</button>
+        <button type="button" data-tab="eeg_saves" class="admin-tab tab-inactive px-3 py-2 rounded-xl text-sm sm:text-base">뇌파저장</button>
+        <button type="button" data-tab="indicator_formulas" class="admin-tab tab-inactive px-3 py-2 rounded-xl text-sm sm:text-base">지표 산출식</button>
+        <a href="/api/logout" id="admin-logout-link" class="ml-auto px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">로그아웃</a>
+      </div>
+
+      <div id="section-login" class="admin-section bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow">
+        <h2 class="text-lg font-bold text-violet-900 mb-3">로그인 계정 · 회원 관리</h2>
+        <p class="text-slate-600 text-sm mb-3">데모 계정 및 가입 회원. 가입 회원만 수정·삭제 가능. 헤더는 SQL 테이블(users) 변수명입니다.</p>
+        <div class="admin-table-wrap">
+          <table class="admin-table w-full border border-violet-100 rounded-xl overflow-hidden">
+            <thead><tr class="bg-violet-50" id="member-thead"><th class="p-2 sm:p-3 text-left text-violet-900">id</th><th class="p-2 sm:p-3 text-left text-violet-900">email</th><th class="p-2 sm:p-3 text-left text-violet-900">created_at</th><th class="p-2 sm:p-3 text-left text-violet-900">remarks</th><th class="p-2 sm:p-3 text-right text-violet-900">관리</th></tr></thead>
+            <tbody id="member-list"></tbody>
+          </table>
+        </div>
+        <p id="member-toast" class="hidden mt-2 text-sm text-violet-600 font-medium"></p>
+      </div>
+      <!-- 회원 비밀번호 재설정 모달 -->
+      <div id="member-pw-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full">
+          <p class="font-semibold text-violet-900 mb-2">비밀번호 재설정</p>
+          <p id="member-pw-email" class="text-slate-600 text-sm mb-3"></p>
+          <input type="password" id="member-pw-new" placeholder="새 비밀번호 (4자 이상)" class="w-full px-3 py-2 border rounded-lg mb-3 text-base" />
+          <div class="flex gap-2">
+            <button type="button" id="member-pw-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">저장</button>
+            <button type="button" id="member-pw-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">취소</button>
+          </div>
+        </div>
+      </div>
+      <!-- 회원 상세 (로그인 정보 + 프로필) 모달 -->
+      <div id="member-detail-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <p class="font-semibold text-violet-900 mb-3">회원 상세 · 로그인 정보 및 프로필</p>
+          <div id="member-detail-content" class="text-slate-700 text-sm space-y-2"></div>
+          <button type="button" id="member-detail-close" class="mt-4 w-full px-4 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">닫기</button>
+        </div>
+      </div>
+      <!-- 설문 저장 내용 보기 모달 (survey_saves) -->
+      <div id="survey-content-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+          <div class="p-4 border-b border-violet-100 flex justify-between items-center">
+            <h3 id="survey-content-modal-title" class="font-bold text-violet-900">설문 저장 내용</h3>
+            <button type="button" id="survey-content-modal-close" class="px-3 py-1 rounded-lg border border-slate-300 text-slate-600 text-sm">닫기</button>
+          </div>
+          <div id="survey-content-body" class="p-4 overflow-y-auto flex-1 text-sm text-slate-700"></div>
+          <div class="p-4 border-t border-violet-100 flex gap-2">
+            <button type="button" id="survey-content-edit-title-btn" class="px-4 py-2 rounded-xl border border-violet-300 text-violet-700 text-sm hover:bg-violet-50">제목 수정</button>
+          </div>
+        </div>
+      </div>
+      <!-- 공통 내용 확인 모달 (대화/뇌파/게시판/지표 산출식) -->
+      <div id="admin-content-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+          <div class="p-4 border-b border-violet-100 flex justify-between items-center">
+            <h3 id="admin-content-modal-title" class="font-bold text-violet-900">내용 확인</h3>
+            <button type="button" id="admin-content-modal-close" class="px-3 py-1 rounded-lg border border-slate-300 text-slate-600 text-sm">닫기</button>
+          </div>
+          <div id="admin-content-body" class="p-4 overflow-y-auto flex-1 text-sm text-slate-700"></div>
+          <div id="admin-content-footer" class="p-4 border-t border-violet-100 flex gap-2 hidden"></div>
+        </div>
+      </div>
+      <!-- 제목 수정 폼 (survey_saves, chat_saves, eeg_saves) -->
+      <div id="title-edit-form" class="hidden mt-4 p-4 bg-violet-50 rounded-xl border border-violet-200">
+        <p class="font-medium text-violet-900 mb-2">제목 수정</p>
+        <input type="hidden" id="title-edit-table" />
+        <input type="hidden" id="title-edit-id" />
+        <input type="text" id="title-edit-value" placeholder="제목" class="w-full px-3 py-2 border rounded-lg mb-2 text-base" />
+        <div class="flex gap-2">
+          <button type="button" id="title-edit-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">저장</button>
+          <button type="button" id="title-edit-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">취소</button>
+        </div>
+      </div>
+
+      <div id="section-survey_saves" class="admin-section hidden bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow mt-4">
+        <h2 class="text-lg font-bold text-violet-900 mb-3">설문 저장 (survey_saves)</h2>
+        <div class="admin-table-wrap max-h-[50vh] overflow-auto">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">user_email</th><th class="p-2 sm:p-3 text-left">title</th><th class="p-2 sm:p-3 text-left">created_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-survey_saves"></tbody>
+          </table>
+        </div>
+        <h3 class="text-base font-bold text-violet-900 mt-6 mb-2">설문진단 조회 (연월일·사용자별)</h3>
+        <p class="text-slate-600 text-sm mb-3">연월일·사용자 아이디로 조회 후 삭제. 아래 통계는 조회 조건에 따른 건수입니다.</p>
+        <div class="flex flex-wrap gap-2 items-end mb-3">
+          <div>
+            <label class="block text-slate-600 text-xs mb-1">시작일 (YYYY-MM-DD)</label>
+            <input type="date" id="survey-diag-from" class="px-3 py-2 border border-violet-200 rounded-lg text-base" />
+          </div>
+          <div>
+            <label class="block text-slate-600 text-xs mb-1">종료일 (YYYY-MM-DD)</label>
+            <input type="date" id="survey-diag-to" class="px-3 py-2 border border-violet-200 rounded-lg text-base" />
+          </div>
+          <div>
+            <label class="block text-slate-600 text-xs mb-1">사용자 아이디(이메일)</label>
+            <input type="text" id="survey-diag-user" placeholder="이메일 일부 검색" class="px-3 py-2 border border-violet-200 rounded-lg text-base w-48" />
+          </div>
+          <button type="button" id="survey-diag-fetch" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm min-h-[44px]">조회</button>
+          <button type="button" id="survey-diag-search" class="px-4 py-2 rounded-xl bg-violet-500 text-white hover:bg-violet-600 text-sm min-h-[44px]">검색</button>
+        </div>
+        <div id="survey-diag-stats" class="mb-3 px-3 py-2 rounded-lg bg-violet-50 text-violet-800 text-sm font-medium hidden">총 <span id="survey-diag-total">0</span>건 · 최근 7일 진단 <span id="survey-diag-last7">0</span>건</div>
+        <div class="admin-table-wrap max-h-[50vh] overflow-auto">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">user_email</th><th class="p-2 sm:p-3 text-left">title</th><th class="p-2 sm:p-3 text-left">created_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-survey_diagnosis"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="section-chat_saves" class="admin-section hidden bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow mt-4">
+        <h2 class="text-lg font-bold text-violet-900 mb-3">대화 저장 (chat_saves)</h2>
+        <div class="admin-table-wrap max-h-[70vh] overflow-auto">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">user_email</th><th class="p-2 sm:p-3 text-left">summary_title</th><th class="p-2 sm:p-3 text-left">created_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-chat_saves"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="section-board" class="admin-section hidden bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow mt-4">
+        <h2 class="text-lg font-bold text-violet-900 mb-3">게시판 (board)</h2>
+        <div class="admin-table-wrap max-h-[70vh] overflow-auto">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">type</th><th class="p-2 sm:p-3 text-left">title</th><th class="p-2 sm:p-3 text-left">updated_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-board"></tbody>
+          </table>
+        </div>
+        <div id="board-edit-form" class="hidden mt-4 p-4 bg-violet-50 rounded-xl border border-violet-200">
+          <p class="font-medium text-violet-900 mb-2">수정</p>
+          <input type="hidden" id="board-edit-id" />
+          <input type="text" id="board-edit-title" placeholder="제목" class="w-full px-3 py-2 border rounded-lg mb-2 text-base" />
+          <textarea id="board-edit-content" placeholder="내용" rows="4" class="w-full px-3 py-2 border rounded-lg mb-2 text-base"></textarea>
+          <div class="flex gap-2">
+            <button type="button" id="board-edit-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">저장</button>
+            <button type="button" id="board-edit-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">취소</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="section-eeg_saves" class="admin-section hidden bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow mt-4">
+        <h2 class="text-lg font-bold text-violet-900 mb-3">뇌파 저장 (eeg_saves)</h2>
+        <div class="admin-table-wrap max-h-[70vh] overflow-auto">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">user_email</th><th class="p-2 sm:p-3 text-left">title</th><th class="p-2 sm:p-3 text-left">created_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-eeg_saves"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="section-indicator_formulas" class="admin-section hidden bg-white rounded-2xl border border-violet-100 p-4 sm:p-6 shadow-lg card-shadow mt-4">
+        <h2 id="admin-formula-section-title" class="text-lg font-bold text-violet-900 mb-3">지표 산출식 (indicator_formulas)</h2>
+        <p id="admin-formula-section-desc" class="text-slate-600 text-sm mb-3">목록·추가·수정·삭제·저장. 아래 기본 삽입 후 수정 가능.</p>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button type="button" id="btn-add-formula" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm min-h-[44px]">+ 새 항목 추가</button>
+          <button type="button" id="btn-seed-formula" class="px-4 py-2 rounded-xl border border-violet-300 text-violet-700 hover:bg-violet-50 text-sm min-h-[44px]">기본 지표 산출식 삽입</button>
+        </div>
+        <div id="formula-add-form" class="hidden mt-4 p-4 bg-violet-50 rounded-xl border border-violet-200">
+          <p class="font-medium text-violet-900 mb-2">새 지표 산출식 저장</p>
+          <input type="text" id="formula-add-title" placeholder="제목" class="w-full px-3 py-2 border rounded-lg mb-2 text-base" />
+          <textarea id="formula-add-content" placeholder="내용 (산출식 설명)" rows="6" class="w-full px-3 py-2 border rounded-lg mb-2 text-base"></textarea>
+          <input type="number" id="formula-add-sort" placeholder="정렬순서" value="0" class="w-24 px-3 py-2 border rounded-lg mb-2 text-base" />
+          <div class="flex gap-2">
+            <button type="button" id="formula-add-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">저장</button>
+            <button type="button" id="formula-add-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">취소</button>
+          </div>
+        </div>
+        <div id="formula-edit-form" class="hidden mt-4 p-4 bg-violet-50 rounded-xl border border-violet-200">
+          <p class="font-medium text-violet-900 mb-2">지표 산출식 수정</p>
+          <input type="hidden" id="formula-edit-id" />
+          <input type="text" id="formula-edit-title" placeholder="제목" class="w-full px-3 py-2 border rounded-lg mb-2 text-base" />
+          <textarea id="formula-edit-content" placeholder="내용" rows="6" class="w-full px-3 py-2 border rounded-lg mb-2 text-base"></textarea>
+          <input type="number" id="formula-edit-sort" placeholder="정렬순서" class="w-24 px-3 py-2 border rounded-lg mb-2 text-base" />
+          <div class="flex gap-2">
+            <button type="button" id="formula-edit-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">저장</button>
+            <button type="button" id="formula-edit-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">취소</button>
+          </div>
+        </div>
+        <div class="admin-table-wrap max-h-[70vh] overflow-auto mt-4">
+          <table class="admin-table w-full border border-violet-100 rounded-xl">
+            <thead class="sticky top-0 bg-violet-50"><tr><th class="p-2 sm:p-3 text-left">id</th><th class="p-2 sm:p-3 text-left">title</th><th class="p-2 sm:p-3 text-left">content 미리보기</th><th class="p-2 sm:p-3 text-left">updated_at</th><th class="p-2 sm:p-3 text-right">관리</th></tr></thead>
+            <tbody id="table-indicator_formulas"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="py-4 mt-8 border-t border-violet-200/60 bg-white/50">
+    <div class="max-w-4xl mx-auto text-center">
+      <p class="text-violet-600/80 text-sm font-medium">장산뇌혁신데이터랩</p>
+      <p class="text-violet-400 text-xs mt-1">since 2024</p>
+      <p class="mt-4"><button type="button" id="btn-goto-top" class="inline-block px-4 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm min-h-[44px]">↑ 위로 가기</button></p>
+    </div>
+  </footer>
+
+  <script src="/static/sbi-lang.js"></script>
+  <script>
+    var adminLang = {
+      ko: { h1: '관리자 화면', subtitle: 'DB 테이블 조회·삭제·수정', home: '홈', dashboard: '대시보드', logout: '로그아웃', langSwitch: 'EN', tabLogin: '로그인·회원', tabSurvey: '설문저장·진단', tabChat: '대화저장', tabBoard: '게시판', tabEeg: '뇌파저장', tabFormula: '지표 산출식', formulaSectionTitle: '지표 산출식 (indicator_formulas)', formulaSectionDesc: '목록·추가·수정·삭제·저장. 아래 기본 삽입 후 수정 가능.' },
+      en: { h1: 'Admin', subtitle: 'DB tables view / edit / delete', home: 'Home', dashboard: 'Dashboard', logout: 'Logout', langSwitch: '한국어', tabLogin: 'Login · Members', tabSurvey: 'Survey Saves · Diagnosis', tabChat: 'Chat Saves', tabBoard: 'Board', tabEeg: 'EEG Saves', tabFormula: 'Formulas', formulaSectionTitle: 'Indicator Formulas (indicator_formulas)', formulaSectionDesc: 'List, add, edit, delete. You can edit after inserting defaults below.' }
+    };
+    function applyAdminLang(lang) {
+      lang = lang || (window.getSbiLang && window.getSbiLang()) || 'ko';
+      var t = adminLang[lang] || adminLang.ko;
+      document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+      var el = function(id) { return document.getElementById(id); };
+      if (el('admin-h1')) el('admin-h1').textContent = t.h1;
+      if (el('admin-subtitle')) el('admin-subtitle').textContent = t.subtitle;
+      if (el('admin-home-link')) el('admin-home-link').textContent = t.home;
+      if (el('admin-dashboard-link')) el('admin-dashboard-link').textContent = t.dashboard;
+      if (el('admin-logout-link')) el('admin-logout-link').textContent = t.logout;
+      if (el('admin-lang-switch')) el('admin-lang-switch').textContent = t.langSwitch;
+      var tabs = { login: t.tabLogin, survey_saves: t.tabSurvey, chat_saves: t.tabChat, board: t.tabBoard, eeg_saves: t.tabEeg, indicator_formulas: t.tabFormula };
+      Object.keys(tabs).forEach(function(key) {
+        var btn = document.querySelector('.admin-tab[data-tab="' + key + '"]');
+        if (btn) btn.textContent = tabs[key];
+      });
+      if (el('admin-formula-section-title')) el('admin-formula-section-title').textContent = t.formulaSectionTitle;
+      if (el('admin-formula-section-desc')) el('admin-formula-section-desc').textContent = t.formulaSectionDesc;
+    }
+    if (window.getSbiLang) applyAdminLang(window.getSbiLang());
+    var currentAdminLang = window.getSbiLang ? window.getSbiLang() : 'ko';
+    var currentTab = 'login';
+    function setTab(name) {
+      currentTab = name;
+      document.querySelectorAll('.admin-section').forEach(function(el) { el.classList.add('hidden'); });
+      document.querySelectorAll('.admin-tab').forEach(function(t) {
+        t.classList.remove('tab-active');
+        t.classList.add('tab-inactive');
+      });
+      var section = document.getElementById('section-' + name);
+      var tabBtn = document.querySelector('.admin-tab[data-tab="' + name + '"]');
+      if (section) section.classList.remove('hidden');
+      if (tabBtn) { tabBtn.classList.remove('tab-inactive'); tabBtn.classList.add('tab-active'); }
+      if (name === 'login') fetchMemberList();
+      else if (name === 'survey_saves') {
+        fetchTableList('survey_saves');
+        fetchSurveyDiagnosisList();
+      }
+      else if (['chat_saves','board','eeg_saves','indicator_formulas'].indexOf(name) >= 0) fetchTableList(name);
+    }
+    function fetchSurveyDiagnosisList() {
+      var fromVal = document.getElementById('survey-diag-from').value || '';
+      var toVal = document.getElementById('survey-diag-to').value || '';
+      var userVal = (document.getElementById('survey-diag-user') && document.getElementById('survey-diag-user').value) ? document.getElementById('survey-diag-user').value.trim() : '';
+      var params = new URLSearchParams();
+      if (fromVal) params.set('date_from', fromVal);
+      if (toVal) params.set('date_to', toVal);
+      if (userVal) params.set('user_email', userVal);
+      var tbody = document.getElementById('table-survey_diagnosis');
+      var statsEl = document.getElementById('survey-diag-stats');
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-slate-500">조회 중…</td></tr>';
+      fetch('/api/admin/survey-diagnosis-list?' + params.toString(), { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        var items = data.items || [];
+        var totalCount = data.total_count != null ? data.total_count : items.length;
+        var last7 = data.last_7_days_count != null ? data.last_7_days_count : 0;
+        if (statsEl) {
+          var totalSpan = document.getElementById('survey-diag-total');
+          var last7Span = document.getElementById('survey-diag-last7');
+          if (totalSpan) totalSpan.textContent = totalCount;
+          if (last7Span) last7Span.textContent = last7;
+          statsEl.classList.remove('hidden');
+        }
+        if (items.length === 0) {
+          var msg = (data.message || '').trim() || '조건에 맞는 데이터가 없습니다. 연월일 또는 사용자 아이디를 지정 후 조회·검색하세요.';
+          tbody.innerHTML = '<tr><td colspan="5" class="p-4 ' + (data.message ? 'text-amber-700 bg-amber-50' : 'text-slate-500') + '">' + msg + '</td></tr>';
+          return;
+        }
+        tbody.innerHTML = items.map(function(r) {
+          var title = (r.title || '').substring(0, 40);
+          var id = r.id;
+          return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 diag-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + id + '</td><td class="p-2 sm:p-3 diag-view-email cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + (r.user_email || '') + '</td><td class="p-2 sm:p-3 diag-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + title + '</td><td class="p-2 sm:p-3">' + (r.created_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-diag-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-id="' + id + '">내용확인</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="survey_saves" data-id="' + id + '">삭제</button></td></tr>';
+        }).join('');
+        tbody.querySelectorAll('.btn-view-diag-content').forEach(function(btn) {
+          btn.addEventListener('click', function() { openSurveyContentView(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.diag-view-id, .diag-view-email, .diag-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() { var id = parseInt(cell.dataset.id, 10); if (id) openSurveyContentView(id); });
+        });
+        tbody.querySelectorAll('.btn-del-row').forEach(function(btn) {
+          btn.addEventListener('click', function() { deleteRow(btn.dataset.table, parseInt(btn.dataset.id, 10)); });
+        });
+      }).catch(function() { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-red-500">조회 실패</td></tr>'; });
+    }
+    function showMemberToast(msg, isError) {
+      var el = document.getElementById('member-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      el.classList.toggle('text-red-600', isError);
+      el.classList.toggle('text-violet-600', !isError);
+      setTimeout(function() { el.classList.add('hidden'); }, 4000);
+    }
+    function fetchMemberList() {
+      var thead = document.getElementById('member-thead');
+      var tbody = document.getElementById('member-list');
+      fetch('/api/admin/users', { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        var columns = data.columns || ['id', 'email', 'created_at', 'remarks'];
+        var items = data.items || [];
+        if (thead && columns.length) {
+          var ths = columns.map(function(c) { return '<th class="p-2 sm:p-3 text-left text-violet-900">' + c + '</th>'; }).join('');
+          thead.innerHTML = '<tr class="bg-violet-50">' + ths + '<th class="p-2 sm:p-3 text-right text-violet-900">관리</th></tr>';
+        }
+        tbody.innerHTML = items.map(function(it) {
+          var actions = '';
+          if (!it.is_demo) {
+            actions += '<button type="button" class="btn-pw-member px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-email="' + (it.email || '').replace(/"/g, '&quot;') + '">수정</button>';
+            actions += '<button type="button" class="btn-del-member px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm" data-email="' + (it.email || '').replace(/"/g, '&quot;') + '">삭제</button>';
+          } else {
+            actions = '<span class="text-slate-400 text-sm">-</span>';
+          }
+          var idVal = it.id != null ? it.id : '-';
+          var emailCell = '<button type="button" class="member-email-link text-left text-violet-700 hover:underline font-medium" data-email="' + (it.email || '').replace(/"/g, '&quot;') + '">' + (it.email || '') + '</button>';
+          return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3">' + idVal + '</td><td class="p-2 sm:p-3">' + emailCell + '</td><td class="p-2 sm:p-3">' + (it.created_at || '-') + '</td><td class="p-2 sm:p-3">' + (it.remarks || '-') + '</td><td class="p-2 sm:p-3 text-right">' + actions + '</td></tr>';
+        }).join('');
+        tbody.querySelectorAll('.btn-del-member').forEach(function(btn) {
+          btn.addEventListener('click', function() { deleteMember(btn.dataset.email); });
+        });
+        tbody.querySelectorAll('.btn-pw-member').forEach(function(btn) {
+          btn.addEventListener('click', function() { openPwModal(btn.dataset.email); });
+        });
+        tbody.querySelectorAll('.member-email-link').forEach(function(btn) {
+          btn.addEventListener('click', function() { openMemberDetail(btn.dataset.email); });
+        });
+      }).catch(function() {
+        tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-slate-500">조회 실패</td></tr>';
+      });
+    }
+    function deleteMember(email) {
+      if (!confirm('회원 "' + email + '"을(를) 삭제하시겠습니까?')) return;
+      fetch('/api/admin/users/delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ email: email }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { showMemberToast(data.detail, true); return; }
+          showMemberToast('삭제가 완료되었습니다.', false);
+          fetchMemberList();
+        })
+        .catch(function() { showMemberToast('삭제 실패', true); });
+    }
+    function fetchTableList(tableName) {
+      var tbody = document.getElementById('table-' + tableName);
+      if (!tbody) return;
+      tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-slate-500">불러오는 중…</td></tr>';
+      fetch('/api/admin/tables/' + tableName, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        var items = data.items || [];
+        var notice = (data.message || '').trim();
+        if (notice && items.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-amber-700 bg-amber-50 border border-amber-200 rounded-lg">' + notice + '</td></tr>';
+          return;
+        }
+        if (tableName === 'survey_saves') {
+          tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="p-4 text-slate-500">데이터 없음</td></tr>' : items.map(function(r) {
+            var title = (r.title || '').substring(0, 40);
+            var id = r.id;
+            return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 survey-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + id + '</td><td class="p-2 sm:p-3 survey-view-email cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + (r.user_email || '') + '</td><td class="p-2 sm:p-3 survey-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 저장 내용 보기">' + title + '</td><td class="p-2 sm:p-3">' + (r.created_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-survey-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-table="survey_saves" data-id="' + id + '" data-title="' + (r.title || '').replace(/"/g, '&quot;') + '">내용 확인</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="survey_saves" data-id="' + id + '">삭제</button></td></tr>';
+          }).join('');
+        } else if (tableName === 'chat_saves') {
+          tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="p-4 text-slate-500">데이터 없음</td></tr>' : items.map(function(r) {
+            var title = (r.summary_title || '').substring(0, 40);
+            var id = r.id;
+            return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 chat-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + id + '</td><td class="p-2 sm:p-3 chat-view-email cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + (r.user_email || '') + '</td><td class="p-2 sm:p-3 chat-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + title + '</td><td class="p-2 sm:p-3">' + (r.created_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-chat-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-id="' + id + '" data-title="' + (r.summary_title || '').replace(/"/g, '&quot;') + '">내용확인</button><button type="button" class="btn-edit-title px-2 py-1 rounded border border-violet-300 text-violet-700 text-sm mr-1" data-table="chat_saves" data-id="' + id + '" data-title="' + (r.summary_title || '').replace(/"/g, '&quot;') + '">제목수정</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="chat_saves" data-id="' + id + '">삭제</button></td></tr>';
+          }).join('');
+        } else if (tableName === 'board') {
+          tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="p-4 text-slate-500">데이터 없음</td></tr>' : items.map(function(r) {
+            var id = r.id;
+            return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 board-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + id + '</td><td class="p-2 sm:p-3">' + (r.type || '') + '</td><td class="p-2 sm:p-3 board-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + (r.title || '').substring(0, 30) + '</td><td class="p-2 sm:p-3">' + (r.updated_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-board-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-id="' + id + '">내용확인</button><button type="button" class="btn-edit-board px-2 py-1 rounded border border-violet-300 text-violet-700 text-sm mr-1" data-id="' + id + '">수정</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="board" data-id="' + id + '">삭제</button></td></tr>';
+          }).join('');
+        } else if (tableName === 'eeg_saves') {
+          tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="p-4 text-slate-500">데이터 없음</td></tr>' : items.map(function(r) {
+            var title = (r.title || '').substring(0, 40);
+            var id = r.id;
+            return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 eeg-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + id + '</td><td class="p-2 sm:p-3 eeg-view-email cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + (r.user_email || '') + '</td><td class="p-2 sm:p-3 eeg-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + title + '</td><td class="p-2 sm:p-3">' + (r.created_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-eeg-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-id="' + id + '" data-title="' + (r.title || '').replace(/"/g, '&quot;') + '">내용확인</button><button type="button" class="btn-edit-title px-2 py-1 rounded border border-violet-300 text-violet-700 text-sm mr-1" data-table="eeg_saves" data-id="' + id + '" data-title="' + (r.title || '').replace(/"/g, '&quot;') + '">제목수정</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="eeg_saves" data-id="' + id + '">삭제</button></td></tr>';
+          }).join('');
+        } else if (tableName === 'indicator_formulas') {
+          tbody.innerHTML = items.length === 0 ? '<tr><td colspan="5" class="p-4 text-slate-500">데이터 없음</td></tr>' : items.map(function(r) {
+            var prev = (r.content || '').substring(0, 50).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            var id = r.id;
+            return '<tr class="border-t border-violet-100"><td class="p-2 sm:p-3 formula-view-id cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + id + '</td><td class="p-2 sm:p-3 formula-view-title cursor-pointer hover:bg-violet-50 rounded" data-id="' + id + '" title="클릭 시 내용 보기">' + (r.title || '').substring(0, 30) + '</td><td class="p-2 sm:p-3 text-sm text-slate-600">' + prev + '…</td><td class="p-2 sm:p-3">' + (r.updated_at || r.created_at || '') + '</td><td class="p-2 sm:p-3 text-right"><button type="button" class="btn-view-formula-content px-2 py-1 rounded bg-violet-100 text-violet-700 text-sm mr-1" data-id="' + id + '">내용확인</button><button type="button" class="btn-edit-formula px-2 py-1 rounded border border-violet-300 text-violet-700 text-sm mr-1" data-id="' + id + '">수정</button><button type="button" class="btn-del-row px-2 py-1 rounded bg-red-50 text-red-600 text-sm" data-table="indicator_formulas" data-id="' + id + '">삭제</button></td></tr>';
+          }).join('');
+        }
+        tbody.querySelectorAll('.btn-edit-title').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            openTitleEdit(btn.dataset.table, parseInt(btn.dataset.id, 10), btn.dataset.title || '');
+          });
+        });
+        tbody.querySelectorAll('.btn-view-chat-content').forEach(function(btn) {
+          btn.addEventListener('click', function() { openChatContentView(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.chat-view-id, .chat-view-email, .chat-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() { var id = parseInt(cell.dataset.id, 10); if (id) openChatContentView(id); });
+        });
+        tbody.querySelectorAll('.btn-view-board-content').forEach(function(btn) {
+          btn.addEventListener('click', function() { openBoardContentView(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.board-view-id, .board-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() { var id = parseInt(cell.dataset.id, 10); if (id) openBoardContentView(id); });
+        });
+        tbody.querySelectorAll('.btn-view-eeg-content').forEach(function(btn) {
+          btn.addEventListener('click', function() { openEegContentView(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.eeg-view-id, .eeg-view-email, .eeg-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() { var id = parseInt(cell.dataset.id, 10); if (id) openEegContentView(id); });
+        });
+        tbody.querySelectorAll('.btn-view-formula-content').forEach(function(btn) {
+          btn.addEventListener('click', function() { openFormulaContentView(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.formula-view-id, .formula-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() { var id = parseInt(cell.dataset.id, 10); if (id) openFormulaContentView(id); });
+        });
+        tbody.querySelectorAll('.btn-view-survey-content').forEach(function(btn) {
+          btn.addEventListener('click', function() {
+            openSurveyContentView(parseInt(btn.dataset.id, 10));
+          });
+        });
+        tbody.querySelectorAll('.survey-view-id, .survey-view-email, .survey-view-title').forEach(function(cell) {
+          cell.addEventListener('click', function() {
+            var id = parseInt(cell.dataset.id, 10);
+            if (id) openSurveyContentView(id);
+          });
+        });
+        tbody.querySelectorAll('.btn-del-row').forEach(function(btn) {
+          btn.addEventListener('click', function() { deleteRow(btn.dataset.table, parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.btn-edit-board').forEach(function(btn) {
+          btn.addEventListener('click', function() { openBoardEdit(parseInt(btn.dataset.id, 10)); });
+        });
+        tbody.querySelectorAll('.btn-edit-formula').forEach(function(btn) {
+          btn.addEventListener('click', function() { openFormulaEdit(parseInt(btn.dataset.id, 10)); });
+        });
+      }).catch(function() { tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-red-500">조회 실패</td></tr>'; });
+    }
+    function openFormulaEdit(id) {
+      setTab('indicator_formulas');
+      fetch('/api/admin/indicator-formulas/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(x) {
+        document.getElementById('formula-edit-id').value = id;
+        document.getElementById('formula-edit-title').value = x.title || '';
+        document.getElementById('formula-edit-content').value = x.content || '';
+        document.getElementById('formula-edit-sort').value = x.sort_order != null ? x.sort_order : 0;
+        var form = document.getElementById('formula-edit-form');
+        form.classList.remove('hidden');
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('formula-edit-title').focus();
+      }).catch(function() { alert('항목을 불러올 수 없습니다.'); });
+    }
+    document.getElementById('survey-diag-search').addEventListener('click', fetchSurveyDiagnosisList);
+    var surveyDiagFetch = document.getElementById('survey-diag-fetch');
+    if (surveyDiagFetch) surveyDiagFetch.addEventListener('click', fetchSurveyDiagnosisList);
+    document.getElementById('btn-add-formula').addEventListener('click', function() {
+      document.getElementById('formula-add-title').value = '';
+      document.getElementById('formula-add-content').value = '';
+      document.getElementById('formula-add-sort').value = '0';
+      document.getElementById('formula-add-form').classList.remove('hidden');
+    });
+    document.getElementById('formula-add-cancel').addEventListener('click', function() {
+      document.getElementById('formula-add-form').classList.add('hidden');
+    });
+    document.getElementById('btn-seed-formula').addEventListener('click', function() {
+      fetch('/api/admin/indicator-formulas/seed', { method: 'POST', credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.detail) { alert(data.detail); return; }
+        alert(data.message || '삽입되었습니다.');
+        fetchTableList('indicator_formulas');
+      }).catch(function() { alert('요청 실패'); });
+    });
+    document.getElementById('formula-add-save').addEventListener('click', function() {
+      var title = document.getElementById('formula-add-title').value.trim();
+      var content = document.getElementById('formula-add-content').value;
+      var sortOrder = parseInt(document.getElementById('formula-add-sort').value, 10) || 0;
+      if (!title) { alert('제목을 입력하세요.'); return; }
+      fetch('/api/admin/indicator-formulas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ title: title, content: content, sort_order: sortOrder }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { alert(data.detail); return; }
+          alert('저장되었습니다.');
+          document.getElementById('formula-add-form').classList.add('hidden');
+          fetchTableList('indicator_formulas');
+        })
+        .catch(function() { alert('저장 실패'); });
+    });
+    document.getElementById('formula-edit-cancel').addEventListener('click', function() {
+      document.getElementById('formula-edit-form').classList.add('hidden');
+    });
+    document.getElementById('formula-edit-save').addEventListener('click', function() {
+      var id = document.getElementById('formula-edit-id').value;
+      var title = document.getElementById('formula-edit-title').value.trim();
+      var content = document.getElementById('formula-edit-content').value;
+      var sortOrder = parseInt(document.getElementById('formula-edit-sort').value, 10) || 0;
+      if (!title) { alert('제목을 입력하세요.'); return; }
+      fetch('/api/admin/indicator-formulas/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ title: title, content: content, sort_order: sortOrder }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { alert(data.detail); return; }
+          alert('저장되었습니다.');
+          document.getElementById('formula-edit-form').classList.add('hidden');
+          fetchTableList('indicator_formulas');
+        })
+        .catch(function() { alert('저장 실패'); });
+    });
+    function deleteRow(tableName, id) {
+      if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+      fetch('/api/admin/tables/' + tableName + '/' + id, { method: 'DELETE', credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { alert(data.detail); return; }
+          alert('삭제되었습니다.');
+          fetchTableList(tableName);
+        })
+        .catch(function() { alert('삭제 실패'); });
+    }
+    function openBoardEdit(id) {
+      setTab('board');
+      fetch('/api/board/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(x) {
+        document.getElementById('board-edit-id').value = id;
+        document.getElementById('board-edit-title').value = x.title || '';
+        document.getElementById('board-edit-content').value = x.content || '';
+        var form = document.getElementById('board-edit-form');
+        form.classList.remove('hidden');
+        form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        document.getElementById('board-edit-title').focus();
+      }).catch(function() { alert('항목을 불러올 수 없습니다.'); });
+    }
+    document.getElementById('board-edit-save').addEventListener('click', function() {
+      var id = document.getElementById('board-edit-id').value;
+      var title = document.getElementById('board-edit-title').value.trim();
+      var content = document.getElementById('board-edit-content').value;
+      if (!title) { alert('제목을 입력하세요.'); return; }
+      fetch('/api/admin/tables/board/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ title: title, content: content }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { alert(data.detail); return; }
+          alert('저장되었습니다.');
+          document.getElementById('board-edit-form').classList.add('hidden');
+          fetchTableList('board');
+        })
+        .catch(function() { alert('저장 실패'); });
+    });
+    document.getElementById('board-edit-cancel').addEventListener('click', function() {
+      document.getElementById('board-edit-form').classList.add('hidden');
+    });
+    function openPwModal(email) {
+      document.getElementById('member-pw-email').textContent = email;
+      document.getElementById('member-pw-new').value = '';
+      document.getElementById('member-pw-modal').classList.remove('hidden');
+      document.getElementById('member-pw-modal').classList.add('flex');
+      document.getElementById('member-pw-modal').dataset.email = email;
+    }
+    document.getElementById('member-pw-save').addEventListener('click', function() {
+      var email = document.getElementById('member-pw-modal').dataset.email;
+      var pw = document.getElementById('member-pw-new').value.trim();
+      if (pw.length < 4) { alert('비밀번호는 4자 이상이어야 합니다.'); return; }
+      fetch('/api/admin/users/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ email: email, new_password: pw }) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { showMemberToast(data.detail, true); return; }
+          document.getElementById('member-pw-modal').classList.add('hidden');
+          document.getElementById('member-pw-modal').classList.remove('flex');
+          showMemberToast('비밀번호 재설정(저장)이 완료되었습니다.', false);
+          fetchMemberList();
+        })
+        .catch(function() { showMemberToast('저장 실패', true); });
+    });
+    document.getElementById('member-pw-cancel').addEventListener('click', function() {
+      document.getElementById('member-pw-modal').classList.add('hidden');
+      document.getElementById('member-pw-modal').classList.remove('flex');
+    });
+    function openMemberDetail(email) {
+      if (!email) return;
+      var modal = document.getElementById('member-detail-modal');
+      var content = document.getElementById('member-detail-content');
+      content.innerHTML = '<p class="text-slate-500">불러오는 중…</p>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      fetch('/api/admin/user-detail?email=' + encodeURIComponent(email), { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { content.innerHTML = '<p class="text-red-500">' + data.detail + '</p>'; return; }
+          var html = '<p><strong>로그인 정보</strong></p><p>이메일: ' + (data.email || '-') + '</p><p>가입일: ' + (data.created_at || '-') + '</p>';
+          var pwType = data.password_type === 'demo_plaintext' ? '평문(데모 계정)' : '해시(복호화 불가)';
+          html += '<p>비밀번호 저장형식: ' + pwType + '</p><p>비밀번호 확인값: ' + (data.password_visible || '-') + '</p>';
+          html += '<p class="mt-3"><strong>회원 프로필</strong></p>';
+          html += '<p>이름: ' + (data.name || '-') + '</p><p>성별: ' + (data.gender || '-') + '</p><p>연령: ' + (data.age != null ? data.age : '-') + '</p><p>직업: ' + (data.occupation || '-') + '</p><p>국적: ' + (data.nationality || '-') + '</p>';
+          html += '<p>수면시간(일평균): ' + (data.sleep_hours || '-') + '</p><p>수면의 질: ' + (data.sleep_quality || '-') + '</p><p>식사습관: ' + (data.meal_habit || '-') + '</p><p>배변습관: ' + (data.bowel_habit || '-') + '</p><p>운동습관: ' + (data.exercise_habit || '-') + '</p>';
+          content.innerHTML = html;
+        })
+        .catch(function() { content.innerHTML = '<p class="text-red-500">조회 실패</p>'; });
+    }
+    document.getElementById('member-detail-close').addEventListener('click', function() {
+      document.getElementById('member-detail-modal').classList.add('hidden');
+      document.getElementById('member-detail-modal').classList.remove('flex');
+    });
+    var surveyContentModalCurrentId = null;
+    var surveyContentModalCurrentTitle = null;
+    function openSurveyContentView(saveId) {
+      surveyContentModalCurrentId = saveId;
+      surveyContentModalCurrentTitle = null;
+      var modal = document.getElementById('survey-content-modal');
+      var bodyEl = document.getElementById('survey-content-body');
+      bodyEl.innerHTML = '<p class="text-slate-500">불러오는 중…</p>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      fetch('/api/survey-saved/' + saveId, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) {
+            bodyEl.innerHTML = '<p class="text-red-500">' + (data.detail || '조회 실패') + '</p>';
+            return;
+          }
+          surveyContentModalCurrentTitle = data.title || '';
+          var safeTitle = (data.title || '-').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+          var html = '<p><strong>제목</strong></p><p class="mb-3 text-slate-800">' + safeTitle + '</p>';
+          html += '<p><strong>저장 일시</strong></p><p class="mb-3">' + (data.saved_at || '-') + '</p>';
+          var responses = data.responses || {};
+          var seqs = Object.keys(responses).map(Number).sort(function(a,b){ return a - b; });
+          if (seqs.length > 0) {
+            html += '<p><strong>응답 (문항별 점수)</strong></p><div class="max-h-96 overflow-y-auto"><table class="w-full border border-violet-100 rounded-lg mt-1"><thead><tr class="bg-violet-50"><th class="p-2 text-left">문항</th><th class="p-2 text-left">점수</th></tr></thead><tbody>';
+            seqs.forEach(function(seq) {
+              html += '<tr class="border-t border-violet-100"><td class="p-2">' + seq + '번</td><td class="p-2">' + responses[seq] + '점</td></tr>';
+            });
+            html += '</tbody></table></div>';
+          } else {
+            html += '<p class="text-slate-500">저장된 응답이 없습니다.</p>';
+          }
+          bodyEl.innerHTML = html;
+        })
+        .catch(function() {
+          bodyEl.innerHTML = '<p class="text-red-500">조회 실패</p>';
+        });
+    }
+    function closeSurveyContentModal() {
+      document.getElementById('survey-content-modal').classList.add('hidden');
+      document.getElementById('survey-content-modal').classList.remove('flex');
+      surveyContentModalCurrentId = null;
+      surveyContentModalCurrentTitle = null;
+    }
+    document.getElementById('survey-content-modal-close').addEventListener('click', closeSurveyContentModal);
+    document.getElementById('survey-content-modal').addEventListener('click', function(e) {
+      if (e.target.id === 'survey-content-modal') closeSurveyContentModal();
+    });
+    function openAdminContentModal(title, bodyHtml, footerHtml) {
+      document.getElementById('admin-content-modal-title').textContent = title || '내용 확인';
+      document.getElementById('admin-content-body').innerHTML = bodyHtml || '';
+      var footer = document.getElementById('admin-content-footer');
+      footer.innerHTML = footerHtml || '';
+      footer.classList.toggle('hidden', !footerHtml);
+      document.getElementById('admin-content-modal').classList.remove('hidden');
+      document.getElementById('admin-content-modal').classList.add('flex');
+    }
+    function closeAdminContentModal() {
+      document.getElementById('admin-content-modal').classList.add('hidden');
+      document.getElementById('admin-content-modal').classList.remove('flex');
+    }
+    document.getElementById('admin-content-modal-close').addEventListener('click', closeAdminContentModal);
+    document.getElementById('admin-content-modal').addEventListener('click', function(e) {
+      if (e.target.id === 'admin-content-modal') closeAdminContentModal();
+    });
+    function openChatContentView(id) {
+      fetch('/api/chat-saved/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.detail) { openAdminContentModal('대화 저장 내용', '<p class="text-red-500">' + (data.detail || '조회 실패') + '</p>'); return; }
+        var s = (data.summary_title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var html = '<p><strong>제목</strong></p><p class="mb-3">' + s + '</p><p><strong>저장 일시</strong></p><p class="mb-3">' + (data.saved_at || '-') + '</p>';
+        if (data.messages && data.messages.length) {
+          html += '<p><strong>대화 요약</strong></p><div class="max-h-64 overflow-y-auto rounded border border-violet-100 p-2 bg-slate-50 text-slate-700 whitespace-pre-wrap">' + (data.messages.map(function(m) { return (m.role === 'user' ? '나: ' : 'AI: ') + (m.text || ''); }).join('\n\n')).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+        } else {
+          html += '<p class="text-slate-500">저장된 대화가 없습니다.</p>';
+        }
+        openAdminContentModal('대화 저장 내용', html);
+      }).catch(function() { openAdminContentModal('대화 저장 내용', '<p class="text-red-500">조회 실패</p>'); });
+    }
+    function openEegContentView(id) {
+      fetch('/api/eeg-saved/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.detail) { openAdminContentModal('뇌파 저장 내용', '<p class="text-red-500">' + (data.detail || '조회 실패') + '</p>'); return; }
+        var s = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var html = '<p><strong>제목</strong></p><p class="mb-3">' + s + '</p><p><strong>저장 일시</strong></p><p class="mb-3">' + (data.saved_at || '-') + '</p>';
+        var d = data.data || data;
+        if (d && typeof d === 'object') {
+          html += '<p><strong>뇌파 지표</strong></p><div class="max-h-64 overflow-y-auto rounded border border-violet-100 p-2 bg-slate-50"><table class="w-full text-sm"><tbody>';
+          ['motivation', 'resilience', 'innovation', 'responsibility', 'alpha', 'beta', 'theta', 'delta', 'engagement', 'focus'].forEach(function(k) { if (d[k] != null) html += '<tr><td class="font-medium pr-2">' + k + '</td><td>' + d[k] + '</td></tr>'; });
+          html += '</tbody></table></div>';
+        } else {
+          html += '<p class="text-slate-500">저장된 데이터가 없습니다.</p>';
+        }
+        openAdminContentModal('뇌파 저장 내용', html);
+      }).catch(function() { openAdminContentModal('뇌파 저장 내용', '<p class="text-red-500">조회 실패</p>'); });
+    }
+    function openBoardContentView(id) {
+      fetch('/api/board/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.detail) { openAdminContentModal('게시판 내용', '<p class="text-red-500">' + (data.detail || '조회 실패') + '</p>'); return; }
+        var t = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var c = (data.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        var html = '<p><strong>유형</strong></p><p class="mb-2">' + (data.type || '-') + '</p><p><strong>제목</strong></p><p class="mb-3">' + t + '</p><p><strong>내용</strong></p><div class="rounded border border-violet-100 p-3 bg-slate-50 max-h-64 overflow-y-auto">' + c + '</div>';
+        var footer = '<button type="button" class="admin-content-edit-board px-4 py-2 rounded-xl border border-violet-300 text-violet-700 text-sm hover:bg-violet-50" data-id="' + id + '">수정</button>';
+        openAdminContentModal('게시판 내용', html, footer);
+        var editBtn = document.querySelector('#admin-content-footer .admin-content-edit-board');
+        if (editBtn) editBtn.addEventListener('click', function() { closeAdminContentModal(); openBoardEdit(id); });
+      }).catch(function() { openAdminContentModal('게시판 내용', '<p class="text-red-500">조회 실패</p>'); });
+    }
+    function openFormulaContentView(id) {
+      fetch('/api/admin/indicator-formulas/' + id, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        if (data.detail) { openAdminContentModal('지표 산출식 내용', '<p class="text-red-500">' + (data.detail || '조회 실패') + '</p>'); return; }
+        var t = (data.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        var c = (data.content || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+        var html = '<p><strong>제목</strong></p><p class="mb-3">' + t + '</p><p><strong>내용</strong></p><div class="rounded border border-violet-100 p-3 bg-slate-50 max-h-64 overflow-y-auto">' + c + '</div>';
+        var footer = '<button type="button" class="admin-content-edit-formula px-4 py-2 rounded-xl border border-violet-300 text-violet-700 text-sm hover:bg-violet-50" data-id="' + id + '">수정</button>';
+        openAdminContentModal('지표 산출식 내용', html, footer);
+        var editBtn = document.querySelector('#admin-content-footer .admin-content-edit-formula');
+        if (editBtn) editBtn.addEventListener('click', function() { closeAdminContentModal(); openFormulaEdit(id); });
+      }).catch(function() { openAdminContentModal('지표 산출식 내용', '<p class="text-red-500">조회 실패</p>'); });
+    }
+    document.getElementById('survey-content-edit-title-btn').addEventListener('click', function() {
+      if (surveyContentModalCurrentId == null) return;
+      closeSurveyContentModal();
+      openTitleEdit('survey_saves', surveyContentModalCurrentId, surveyContentModalCurrentTitle || '');
+    });
+    function openTitleEdit(tableName, id, currentTitle) {
+      setTab(tableName);
+      document.getElementById('title-edit-table').value = tableName;
+      document.getElementById('title-edit-id').value = id;
+      document.getElementById('title-edit-value').value = currentTitle;
+      var form = document.getElementById('title-edit-form');
+      form.classList.remove('hidden');
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      document.getElementById('title-edit-value').focus();
+    }
+    document.getElementById('title-edit-save').addEventListener('click', function() {
+      var tableName = document.getElementById('title-edit-table').value;
+      var id = document.getElementById('title-edit-id').value;
+      var value = document.getElementById('title-edit-value').value.trim();
+      if (!value) { alert('제목을 입력하세요.'); return; }
+      var body = tableName === 'chat_saves' ? { summary_title: value } : { title: value };
+      fetch('/api/admin/tables/' + tableName + '/' + id, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.detail) { alert(data.detail); return; }
+          alert('저장되었습니다.');
+          document.getElementById('title-edit-form').classList.add('hidden');
+          fetchTableList(tableName);
+        })
+        .catch(function() { alert('저장 실패'); });
+    });
+    document.getElementById('title-edit-cancel').addEventListener('click', function() {
+      document.getElementById('title-edit-form').classList.add('hidden');
+    });
+    document.querySelectorAll('.admin-tab').forEach(function(btn) {
+      btn.addEventListener('click', function() { setTab(btn.dataset.tab); });
+    });
+    document.getElementById('btn-goto-top').addEventListener('click', function() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    var adminLangSw = document.getElementById('admin-lang-switch');
+    if (adminLangSw) adminLangSw.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var next = (window.getSbiLang && window.getSbiLang() === 'ko') ? 'en' : 'ko';
+      if (window.setSbiLang) window.setSbiLang(next);
+      currentAdminLang = next;
+      applyAdminLang(next);
+    });
+    async function initAdmin() {
+      var meRes = await fetch('/api/me', { credentials: 'same-origin' });
+      if (!meRes.ok) { window.location.href = '/login?next=/admin'; return; }
+      var me = await meRes.json();
+      var email = (me.email || '').toLowerCase();
+      if (email !== 'admin@test.com') {
+        document.getElementById('admin-forbidden').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('admin-panel').classList.remove('hidden');
+      fetchMemberList();
+    }
+    initAdmin();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SBI 진단 결과 및 1:1 상담 할인 안내 (샘플)</title>
+</head>
+<body style="margin:0; padding:0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; background:#f1f5f9;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f1f5f9;">
+    <tr>
+      <td align="center" style="padding:24px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px; background:#ffffff; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.06);">
+          <tr>
+            <td style="padding:32px 28px;">
+              <h1 style="margin:0 0 8px 0; font-size:20px; color:#0f172a;">Startup Brain Index : SBI 창업가 뇌 지수 측정 결과 안내</h1>
+              <p style="margin:0; font-size:13px; color:#64748b;">뇌교육학 박사 이중환 · 장산뇌혁신데이터랩</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 20px 28px;">
+              <p style="margin:0; font-size:15px; color:#334155; line-height:1.6;">안녕하세요, <strong>{{customer_name}}</strong>님.</p>
+              <p style="margin:14px 0 0 0; font-size:15px; color:#334155; line-height:1.6;">SBI(Startup Brain Index) 진단에 참여해 주셔서 감사합니다. 진단 결과를 바탕으로 도움이 될 만한 콘텐츠와 1:1 상담 할인 혜택을 안내드립니다.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 8px 28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f8fafc; border-radius:8px; border:1px solid #e2e8f0;">
+                <tr><td style="padding:14px 16px; font-size:14px; color:#475569;">진단 통합 지수: <strong style="color:#1e40af;">{{score_text}}</strong> / 100</td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:8px 28px 20px 28px;">
+              <p style="margin:0; font-size:14px; font-weight:bold; color:#1e3a8a;">진단 결과에 맞춘 추천 콘텐츠</p>
+              <p style="margin:6px 0 0 0; font-size:13px; color:#64748b;">아래 블로그 또는 유튜브 콘텐츠를 시청하시면, 진단에서 보강이 필요한 역량을 뇌교육·BOS 관점에서 다듬는 데 도움이 됩니다.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 24px 28px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e2e8f0; border-radius:8px;">
+                <!-- 추천 블로그 (있을 경우) -->
+                <tr><td style="padding:12px 0 8px 16px; font-weight:bold; color:#1e3a8a;">추천 블로그</td></tr>
+                <tr><td style="padding:4px 16px 16px 16px;">
+                  <a href="{{blog_url}}" style="color:#2563eb; text-decoration:underline;">{{blog_title}}</a>
+                  <br><span style="color:#64748b; font-size:12px;">https://jangsanbrainlab.tistory.com/</span>
+                </td></tr>
+                <!-- 추천 유튜브 (있을 경우) -->
+                <tr><td style="padding:12px 0 8px 16px; font-weight:bold; color:#1e3a8a;">추천 영상 (유튜브)</td></tr>
+                <tr><td style="padding:4px 16px 16px 16px;">
+                  <a href="{{youtube_url}}" style="color:#2563eb; text-decoration:underline;">{{youtube_title}}</a>
+                  <br><span style="color:#64748b; font-size:12px;">https://www.youtube.com/@jangsanbrain</span>
+                </td></tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:20px 28px 12px 28px; border-top:1px solid #e2e8f0;">
+              <p style="margin:0; font-size:14px; font-weight:bold; color:#1e3a8a;">1:1 상담 할인권</p>
+              <p style="margin:6px 0 12px 0; font-size:13px; color:#475569;">박사님과의 1:1 상담 시 아래 할인 코드를 사용하실 수 있습니다.</p>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#eff6ff; border:1px dashed #3b82f6; border-radius:8px;">
+                <tr>
+                  <td style="padding:16px; text-align:center;">
+                    <span style="font-size:18px; font-weight:bold; letter-spacing:2px; color:#1d4ed8;">{{coupon_code}}</span>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:10px 0 0 0; font-size:12px; color:#64748b;">* 유효기간: 발송일로부터 30일 이내 사용 가능 (상담 예약 시 안내에 따라 적용)</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:16px 28px 28px 28px; font-size:13px; color:#64748b; border-top:1px solid #e2e8f0;">
+              <p style="margin:0;">· 블로그: <a href="https://jangsanbrainlab.tistory.com/" style="color:#2563eb;">https://jangsanbrainlab.tistory.com/</a></p>
+              <p style="margin:6px 0 0 0;">· 유튜브: <a href="https://www.youtube.com/@jangsanbrain" style="color:#2563eb;">https://www.youtube.com/@jangsanbrain</a></p>
+              <p style="margin:16px 0 0 0; font-size:12px;">본 메일은 SBI 진단 결과에 따른 자동 발송 메일입니다.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

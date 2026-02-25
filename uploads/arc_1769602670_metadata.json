@@ -1,0 +1,6 @@
+{
+    "filename": "arc_1769602670.png",
+    "description_file": "arc_1769602670_description.txt",
+    "saved_at": "2026-01-28 21:17:50",
+    "description": "이미지에는 웹 클라이언트와 서버 간의 데이터 흐름을 설명하는 다이어그램이 있습니다. 각 구성 요소는 다음과 같습니다:\n\n1. **웹 클라이언트**:\n   - 요청: HTTP request\n   - 응답: HTTP response\n   - 사용되는 기술 (프론트 엔드): \n     - javascript\n     - jquery\n     - vue.js\n     - angular\n     - react\n\n2. **웹 서버**:\n   - 웹 애플리케이션(Web app)이 여러 개 배치되어 있음.\n   - 웹 서버 소프트웨어 예시:\n     - Apache\n     - IIS\n     - Tomcat 등\n   - 백엔드 개발 언어 및 프레임워크 예시:\n     - jsp(spring)\n     - php\n     - node.js\n     - python(Django, flask)\n\n3. **DB 서버**:\n   - 커넥터를 통해 웹 서버와 연결됨.\n   - 사용되는 드라이버 예시:\n     - JDBC\n     - ODBC\n     - ADO 등\n   - 데이터베이스 예시:\n     - Oracle Database\n     - SqlServer 등\n\n이 다이어그램은 웹 기반 애플리케이션의 기본 아키텍처를 설명합니다."
+}

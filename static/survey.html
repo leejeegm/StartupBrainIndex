@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <title>Startup Brain Index : SBI 창업가 뇌 지수 측정</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violet: { 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' },
+            primary: { 500: '#7c3aed', 600: '#6d28d9' },
+            accent: { 400: '#a78bfa', 500: '#8b5cf6' }
+          },
+          fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { font-size: clamp(14px, 4vw, 20px); }
+    body { font-family: 'Noto Sans KR', sans-serif; -webkit-text-size-adjust: 100%; }
+    .hero-gradient { background: linear-gradient(165deg, #faf5ff 0%, #f5f3ff 50%, #ede9fe 100%); }
+    [type="radio"]:checked + span { font-weight: 700; color: #6d28d9; }
+    .progress-fill { transition: width 0.35s ease-out; }
+    .domain-bar { transition: width 0.6s ease-out; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen hero-gradient">
+  <div class="absolute top-4 right-4 z-10">
+    <button type="button" id="survey-lang-switch" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm font-medium min-h-[44px]">EN</button>
+  </div>
+  <!-- Progress bar (sticky) -->
+  <header id="progress-header" class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-violet-100 shadow-sm">
+    <div class="max-w-3xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between text-sm mb-2">
+        <span id="survey-progress-label" class="font-medium text-slate-600">진행률</span>
+        <span id="progress-text" class="font-bold text-violet-600">0 / 96</span>
+      </div>
+      <div class="h-2.5 bg-slate-200 rounded-full overflow-hidden">
+        <div id="progress-fill" class="progress-fill h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full" style="width: 0%"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 py-8 pb-24">
+    <!-- Survey view -->
+    <section id="survey-section">
+      <div class="text-center mb-8">
+        <h1 id="survey-title" class="text-xl sm:text-2xl font-bold text-violet-900">Startup Brain Index : SBI 창업가 뇌 지수 측정</h1>
+        <p id="survey-instruction" class="text-slate-600 mt-1 text-sm sm:text-base">각 문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)</p>
+      </div>
+
+      <div id="questions-container"></div>
+
+      <div class="mt-10 flex justify-center">
+        <button id="submit-btn" disabled class="px-8 py-3 rounded-xl font-semibold bg-slate-300 text-slate-500 cursor-not-allowed">
+          제출 결과 보기 (96문항 모두 응답 후 활성화)
+        </button>
+      </div>
+    </section>
+
+    <!-- Dashboard view (hidden until submit) -->
+    <section id="dashboard-section" class="hidden">
+      <div class="text-center mb-8">
+        <h1 id="survey-result-title" class="text-2xl font-bold text-slate-800">진단 결과</h1>
+        <p id="dashboard-message" class="text-slate-500 mt-1"></p>
+      </div>
+
+      <!-- 통합 지수 큰 숫자 -->
+      <div class="bg-white rounded-2xl shadow-lg border border-slate-100 p-8 mb-6 text-center">
+        <p id="survey-combined-label" class="text-slate-500 text-sm font-medium mb-1">SBI 통합 지수</p>
+        <p id="combined-index" class="text-5xl font-bold text-primary-600">—</p>
+        <p id="survey-scale-label" class="text-slate-400 text-sm mt-1">0 ~ 100</p>
+      </div>
+
+      <!-- 영역별 카드 -->
+      <div id="domain-cards" class="grid gap-4 sm:grid-cols-2"></div>
+
+      <!-- 설문 평균 & 불일치 안내 -->
+      <div class="mt-6 flex flex-wrap gap-4 justify-center text-sm">
+        <span id="survey-avg" class="text-slate-500"></span>
+        <span id="inconsistency-badge" class="hidden px-3 py-1 rounded-full bg-amber-100 text-amber-800"></span>
+      </div>
+
+      <!-- concept.md 기반 해석 리포트 -->
+      <div id="report-section" class="mt-8 hidden bg-slate-50 rounded-2xl border border-slate-200 p-6">
+        <h2 id="survey-report-title" class="text-lg font-bold text-slate-800 mb-3">뇌교육·BOS 관점 해석 리포트</h2>
+        <p id="report-summary" class="text-slate-600 text-sm mb-4"></p>
+        <div id="report-domains" class="space-y-4"></div>
+        <p id="report-inconsistency" class="mt-4 text-amber-800 text-sm bg-amber-50 rounded-lg p-3 hidden"></p>
+      </div>
+
+      <div class="mt-8 text-center">
+        <button id="retry-btn" class="px-6 py-2 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100">다시 응답하기</button>
+      </div>
+    </section>
+    <div class="mt-8 pt-6 border-t border-violet-100 text-center pb-6">
+      <button type="button" id="btn-goto-top" class="inline-block px-4 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm min-h-[44px]">↑ 위로 가기</button>
+    </div>
+  </main>
+
+  <script src="/static/sbi-lang.js"></script>
+  <script>
+    var surveyLang = {
+      ko: { progressLabel: '진행률', title: 'Startup Brain Index : SBI 창업가 뇌 지수 측정', instruction: '각 문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)', submitDisabled: '제출 결과 보기 (96문항 모두 응답 후 활성화)', submitEnabled: '제출 결과 보기', resultTitle: '진단 결과', combinedLabel: 'SBI 통합 지수', scaleLabel: '0 ~ 100', reportTitle: '뇌교육·BOS 관점 해석 리포트', retry: '다시 응답하기', langSwitch: 'EN', submitProgress: '제출 중…' },
+      en: { progressLabel: 'Progress', title: 'Startup Brain Index : SBI', instruction: 'Rate each item 1–5. (1: Strongly disagree ~ 5: Strongly agree)', submitDisabled: 'View results (after all 96 items)', submitEnabled: 'View results', resultTitle: 'Diagnosis Result', combinedLabel: 'SBI Combined Index', scaleLabel: '0 ~ 100', reportTitle: 'BOS / Brain Education Report', retry: 'Answer again', langSwitch: '한국어', submitProgress: 'Submitting…' }
+    };
+    var currentSurveyLang = (window.getSbiLang && window.getSbiLang()) || 'ko';
+    function applySurveyLang(lang) {
+      lang = lang || currentSurveyLang;
+      currentSurveyLang = lang;
+      document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+      var t = surveyLang[lang] || surveyLang.ko;
+      var el = function(id) { return document.getElementById(id); };
+      if (el('survey-progress-label')) el('survey-progress-label').textContent = t.progressLabel;
+      if (el('survey-title')) el('survey-title').textContent = t.title;
+      if (el('survey-instruction')) el('survey-instruction').textContent = t.instruction;
+      if (el('survey-result-title')) el('survey-result-title').textContent = t.resultTitle;
+      if (el('survey-combined-label')) el('survey-combined-label').textContent = t.combinedLabel;
+      if (el('survey-scale-label')) el('survey-scale-label').textContent = t.scaleLabel;
+      if (el('survey-report-title')) el('survey-report-title').textContent = t.reportTitle;
+      if (el('retry-btn')) el('retry-btn').textContent = t.retry;
+      if (el('survey-lang-switch')) el('survey-lang-switch').textContent = t.langSwitch;
+      var sb = el('submit-btn');
+      if (sb) sb.textContent = sb.disabled ? t.submitDisabled : t.submitEnabled;
+    }
+    if (window.getSbiLang) applySurveyLang(window.getSbiLang());
+    var surveyLangSw = document.getElementById('survey-lang-switch');
+    if (surveyLangSw) surveyLangSw.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var next = (window.getSbiLang && window.getSbiLang() === 'ko') ? 'en' : 'ko';
+      if (window.setSbiLang) window.setSbiLang(next);
+      currentSurveyLang = next;
+      applySurveyLang(next);
+    });
+  </script>
+  <script>
+    const API_BASE = '';
+    let items = [];
+    const responses = {};
+
+    async function loadItems() {
+      const res = await fetch(API_BASE + '/items');
+      const data = await res.json();
+      items = (data.items || []).sort((a, b) => a.전체순번 - b.전체순번);
+      return items;
+    }
+
+    function byDomain(list) {
+      const map = {};
+      list.forEach((item) => {
+        const d = item.영역 || '기타';
+        if (!map[d]) map[d] = [];
+        map[d].push(item);
+      });
+      return map;
+    }
+
+    function updateProgress() {
+      const n = Object.keys(responses).length;
+      const total = 96;
+      const pct = total ? Math.round((n / total) * 100) : 0;
+      document.getElementById('progress-text').textContent = n + ' / ' + total;
+      document.getElementById('progress-fill').style.width = pct + '%';
+
+      const btn = document.getElementById('submit-btn');
+      var t = (typeof currentSurveyLang !== 'undefined' && surveyLang[currentSurveyLang]) ? surveyLang[currentSurveyLang] : surveyLang.ko;
+      if (n === total) {
+        btn.disabled = false;
+        btn.classList.remove('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+        btn.classList.add('bg-primary-600', 'text-white', 'hover:bg-primary-700', 'cursor-pointer');
+        btn.textContent = t.submitEnabled;
+      } else if (btn) {
+        btn.textContent = t.submitDisabled;
+      }
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById('questions-container');
+      const byD = byDomain(items);
+
+      Object.keys(byD).sort().forEach((domain) => {
+        const block = document.createElement('div');
+        block.className = 'mb-10';
+        block.innerHTML = `
+          <h2 class="text-lg font-semibold text-slate-700 mb-4 pb-2 border-b border-slate-200">${domain}</h2>
+          <div class="space-y-6" data-domain="${domain}"></div>
+        `;
+        const inner = block.querySelector('[data-domain]');
+        byD[domain].forEach((item) => {
+          const seq = item.전체순번;
+          const text = item.문항보정 || item.예시문항;
+          const div = document.createElement('div');
+          div.className = 'bg-white rounded-xl p-4 shadow-sm border border-slate-100';
+          div.innerHTML = `
+            <p class="text-slate-700 mb-3 font-medium">
+              <span class="text-primary-600 font-bold">${seq}.</span> ${text}
+            </p>
+            <div class="flex flex-wrap gap-3" role="radiogroup" aria-label="문항 ${seq}">
+              ${[1,2,3,4,5].map((score) => `
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="radio" name="q${seq}" value="${score}" class="w-4 h-4 text-primary-600" data-seq="${seq}" />
+                  <span class="text-sm">${score}점</span>
+                </label>
+              `).join('')}
+            </div>
+          `;
+          inner.appendChild(div);
+
+          div.querySelectorAll('input[type="radio"]').forEach((radio) => {
+            radio.addEventListener('change', () => {
+              responses[seq] = parseInt(radio.value, 10);
+              updateProgress();
+            });
+          });
+        });
+        container.appendChild(block);
+      });
+    }
+
+    function showDashboard(data) {
+      document.getElementById('survey-section').classList.add('hidden');
+      document.getElementById('dashboard-section').classList.remove('hidden');
+      document.getElementById('progress-header').classList.add('hidden');
+
+      const combined = data.통합지수_0_100 ?? data.전체평균 != null ? (data.전체평균 - 1) / 4 * 100 : null;
+      document.getElementById('combined-index').textContent = combined != null ? Math.round(combined) : '—';
+      document.getElementById('dashboard-message').textContent = data.message || '';
+
+      if (data.survey_전체평균 != null) {
+        document.getElementById('survey-avg').textContent = '설문 평균(1~5): ' + data.survey_전체평균.toFixed(2);
+      }
+      if (data.inconsistency_flag) {
+        const badge = document.getElementById('inconsistency-badge');
+        badge.classList.remove('hidden');
+        badge.textContent = '설문·뇌파 차이 있음 — 리포트 권장';
+      }
+
+      const cardsEl = document.getElementById('domain-cards');
+      cardsEl.innerHTML = '';
+      const domains = data.영역별_통합점수 || data.영역별점수 || [];
+      domains.forEach((d) => {
+        const score = d.combined_score != null ? d.combined_score : (d.평균점수 != null ? (d.평균점수 - 1) / 4 * 100 : 0);
+        const name = d.영역명 || d.영역 || '';
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl shadow-sm border border-slate-100 p-4';
+        card.innerHTML = `
+          <p class="text-sm font-medium text-slate-600 truncate mb-2" title="${name}">${name}</p>
+          <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div class="domain-bar h-full rounded-full bg-primary-500" style="width: ${Math.min(100, Math.max(0, score))}%"></div>
+          </div>
+          <p class="text-right text-sm font-bold text-slate-700 mt-1">${typeof score === 'number' ? score.toFixed(1) : score}점</p>
+        `;
+        cardsEl.appendChild(card);
+      });
+
+      if (data.리포트) {
+        const sec = document.getElementById('report-section');
+        sec.classList.remove('hidden');
+        document.getElementById('report-summary').textContent = data.리포트.요약 || '';
+        const domEl = document.getElementById('report-domains');
+        domEl.innerHTML = '';
+        (data.리포트.역량별 || []).forEach((s) => {
+          const div = document.createElement('div');
+          div.className = 'bg-white rounded-xl p-4 border border-slate-100';
+          div.innerHTML = `
+            <p class="font-semibold text-slate-800">${s.영역명} (${typeof s.통합점수 === 'number' ? s.통합점수.toFixed(1) : s.통합점수}점)</p>
+            <p class="text-slate-600 text-sm mt-1">${s.해석}</p>
+            ${(s.추천_뇌교육단계 && s.추천_뇌교육단계.length) ? '<p class="text-xs text-slate-500 mt-2">추천 뇌교육 단계: ' + s.추천_뇌교육단계.join(' / ') + '</p>' : ''}
+            ${(s.추천_BOS_실천 && s.추천_BOS_실천.length) ? '<p class="text-xs text-slate-500 mt-1">BOS 실천: ' + s.추천_BOS_실천.join(' / ') + '</p>' : ''}
+            ${s.불일치 ? '<span class="inline-block mt-2 text-xs px-2 py-0.5 rounded bg-amber-100 text-amber-800">설문·뇌파 불일치</span>' : ''}
+          `;
+          domEl.appendChild(div);
+        });
+        const inc = document.getElementById('report-inconsistency');
+        if (data.리포트.불일치_해석) {
+          inc.classList.remove('hidden');
+          inc.textContent = data.리포트.불일치_해석;
+        } else {
+          inc.classList.add('hidden');
+        }
+      } else {
+        document.getElementById('report-section').classList.add('hidden');
+      }
+    }
+
+    function showSurvey() {
+      document.getElementById('dashboard-section').classList.add('hidden');
+      document.getElementById('survey-section').classList.remove('hidden');
+      document.getElementById('progress-header').classList.remove('hidden');
+      Object.keys(responses).forEach((k) => delete responses[k]);
+      items.forEach((item) => {
+        const r = document.querySelector(`input[name="q${item.전체순번}"]:checked`);
+        if (r) r.checked = false;
+      });
+      updateProgress();
+      var sb = document.getElementById('submit-btn');
+      var t = (typeof currentSurveyLang !== 'undefined' && surveyLang[currentSurveyLang]) ? surveyLang[currentSurveyLang] : surveyLang.ko;
+      sb.disabled = true;
+      sb.classList.add('bg-slate-300', 'text-slate-500', 'cursor-not-allowed');
+      sb.classList.remove('bg-primary-600', 'text-white', 'hover:bg-primary-700', 'cursor-pointer');
+      sb.textContent = t.submitDisabled;
+      document.getElementById('inconsistency-badge').classList.add('hidden');
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      if (Object.keys(responses).length !== 96) return;
+      const btn = document.getElementById('submit-btn');
+      var t = (typeof currentSurveyLang !== 'undefined' && surveyLang[currentSurveyLang]) ? surveyLang[currentSurveyLang] : surveyLang.ko;
+      btn.disabled = true;
+      btn.textContent = t.submitProgress;
+      try {
+        const res = await fetch(API_BASE + '/analyze-sbi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ responses, excluded_sequences: [] })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '제출 실패');
+        showDashboard(data);
+      } catch (e) {
+        alert('제출 실패: ' + (e.message || e));
+      } finally {
+        btn.disabled = false;
+        var t2 = (typeof currentSurveyLang !== 'undefined' && surveyLang[currentSurveyLang]) ? surveyLang[currentSurveyLang] : surveyLang.ko;
+        btn.textContent = t2.submitEnabled;
+      }
+    });
+
+    document.getElementById('retry-btn').addEventListener('click', showSurvey);
+    var btnGotoTop = document.getElementById('btn-goto-top');
+    if (btnGotoTop) btnGotoTop.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    (async () => {
+      await loadItems();
+      renderQuestions();
+      updateProgress();
+    })();
+  </script>
+</body>
+</html>

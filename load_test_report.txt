@@ -1,0 +1,8 @@
+SBI MVP 부하 테스트 보고
+BASE_URL=http://127.0.0.1:8000
+workers=50, duration_sec=5.09
+total_requests=100, ok=50, failed=50, error_rate_pct=50.0
+rps=19.64
+latency_all_ms={'min': 42.02, 'max': 4631.77, 'avg': 1610.47, 'p50_ms': 938.05, 'p95_ms': 4234.22, 'p99_ms': 4631.77}
+  /: {'count': 50, 'ok': 50, 'avg_ms': 2642.11, 'p95_ms': 4545.95, 'error_sample': None}
+  /health: {'count': 50, 'ok': 0, 'avg_ms': 578.83, 'p95_ms': 865.78, 'error_sample': None}

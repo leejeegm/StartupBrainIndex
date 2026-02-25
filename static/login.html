@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6d28d9" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>로그인 - Startup Brain Index : SBI 창업가 뇌 지수 측정</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violet: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' },
+            primary: { 500: '#7c3aed', 600: '#6d28d9' }
+          },
+          fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/mobile-common.css" />
+  <style>
+    html { font-size: clamp(14px, 4vw, 20px); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { min-height: 100vh; font-family: 'Noto Sans KR', sans-serif; -webkit-text-size-adjust: 100%; }
+    @media (max-width: 639px) { html { font-size: clamp(15px, 4.5vw, 18px); } input, button { min-height: 44px; font-size: 16px; } }
+    .hero-gradient { background: linear-gradient(165deg, #faf5ff 0%, #f5f3ff 40%, #ede9fe 75%, #e9e5ff 100%); }
+    .card-shadow { box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.12), 0 16px 40px -8px rgba(124, 58, 237, 0.08); }
+  </style>
+</head>
+<body class="hero-gradient text-slate-800 min-h-screen flex items-center justify-center p-4 sm:p-6">
+  <div class="absolute top-4 right-4 sm:top-6 sm:right-6 z-10">
+    <button type="button" id="login-lang-switch" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm font-medium min-h-[44px]">EN</button>
+  </div>
+  <main class="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-violet-100/80 p-8 sm:p-10 md:p-12 card-shadow">
+    <h1 id="login-h1" class="text-xl sm:text-2xl md:text-3xl font-bold text-violet-900 text-center mb-3">Startup Brain Index</h1>
+    <p id="login-desc" class="text-slate-600 text-center mb-1 text-base sm:text-lg">개인정보 보안을 위해 로그인 후 이용해 주세요.</p>
+    <p id="login-desc2" class="text-violet-600/90 text-center mb-8 text-sm">(로그인 후 설문 참여시 뇌과학적 보고서 다운로드)</p>
+    <form action="/login" method="post" class="space-y-5">
+      <input type="hidden" name="next" id="login-next" value="" />
+      <div>
+        <label for="email" id="login-label-email" class="block text-slate-700 font-medium mb-2 text-base sm:text-lg">이메일</label>
+        <input type="email" id="email" name="email" required placeholder="user@test.com" autocomplete="email" inputmode="email" class="w-full px-4 sm:px-5 py-3 border border-violet-200 rounded-xl text-base sm:text-lg focus:ring-2 focus:ring-violet-400" />
+      </div>
+      <div>
+        <label for="password" id="login-label-pw" class="block text-slate-700 font-medium mb-2 text-base sm:text-lg">비밀번호</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password" class="w-full px-4 sm:px-5 py-3 border border-violet-200 rounded-xl text-base sm:text-lg focus:ring-2 focus:ring-violet-400" />
+      </div>
+      <p id="login-error" class="text-red-600 text-base sm:text-lg hidden"></p>
+      <button type="submit" id="login-submit-btn" class="w-full py-3 sm:py-4 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-lg transition shadow-lg">로그인</button>
+    </form>
+    <p class="text-center mt-4"><a href="/register" id="login-register-link" class="text-violet-600 hover:underline text-base">회원가입</a></p>
+    <div class="mt-3 flex gap-2 justify-center">
+      <button type="button" id="btn-find-id-open" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">아이디 찾기</button>
+      <button type="button" id="btn-find-pw-open" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">비밀번호 찾기</button>
+    </div>
+    <p id="login-lab" class="text-violet-600/80 text-center mt-6 text-base sm:text-lg">장산뇌혁신데이터랩</p>
+    <p class="text-violet-400 text-center text-sm">since 2024</p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6 relative z-10" id="login-nav-buttons">
+      <a href="/" id="btn-home" class="inline-block text-center px-5 py-2.5 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base sm:text-lg transition cursor-pointer bg-white min-h-[44px] flex items-center justify-center">← 처음으로 (초기화면)</a>
+      <a href="/login?next=/admin" id="btn-admin" class="inline-block text-center px-5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-base sm:text-lg border border-slate-200 transition cursor-pointer min-h-[44px] flex items-center justify-center">관리자 화면</a>
+    </div>
+    <div class="mt-8 pt-6 border-t border-violet-100 text-center">
+      <button type="button" id="btn-goto-top" class="inline-block px-4 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm min-h-[44px]">↑ 위로 가기</button>
+    </div>
+  </main>
+
+  <div id="find-id-modal" class="hidden fixed inset-0 z-50 bg-black/50 p-4 items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-4">
+      <h3 class="text-violet-900 font-bold mb-3">아이디 찾기</h3>
+      <div class="space-y-2">
+        <input id="find-id-name" type="text" placeholder="이름" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+        <input id="find-id-age" type="number" placeholder="연령" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+        <input id="find-id-nationality" type="text" placeholder="국적" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+      </div>
+      <p id="find-id-result" class="mt-3 text-sm text-slate-700"></p>
+      <div class="mt-4 flex gap-2">
+        <button type="button" id="btn-find-id-run" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">확인</button>
+        <button type="button" id="btn-find-id-close" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="find-pw-modal" class="hidden fixed inset-0 z-50 bg-black/50 p-4 items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-4">
+      <h3 class="text-violet-900 font-bold mb-3">비밀번호 찾기</h3>
+      <div class="space-y-2">
+        <input id="find-pw-email" type="email" placeholder="이메일" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+        <input id="find-pw-name" type="text" placeholder="이름" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+        <input id="find-pw-age" type="number" placeholder="연령" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+        <input id="find-pw-nationality" type="text" placeholder="국적" class="w-full px-3 py-2 border border-violet-200 rounded-lg" />
+      </div>
+      <p id="find-pw-result" class="mt-3 text-sm text-slate-700"></p>
+      <div class="mt-4 flex gap-2">
+        <button type="button" id="btn-find-pw-run" class="px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">임시 비밀번호 발급</button>
+        <button type="button" id="btn-find-pw-close" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-sm">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/sbi-lang.js"></script>
+  <script>
+    (function() {
+      var loginT = {
+        ko: {
+          h1: 'Startup Brain Index',
+          desc: '개인정보 보안을 위해 로그인 후 이용해 주세요.',
+          desc2: '(로그인 후 설문 참여시 뇌과학적 보고서 다운로드)',
+          adminH1: '관리자 로그인',
+          email: '이메일',
+          password: '비밀번호',
+          submit: '로그인',
+          registerLink: '회원가입',
+          findId: '아이디 찾기',
+          findPw: '비밀번호 찾기',
+          lab: '장산뇌혁신데이터랩',
+          home: '← 처음으로 (초기화면)',
+          admin: '관리자 화면',
+          switchLabel: 'EN',
+          errorAuth: '이메일 또는 비밀번호가 올바르지 않습니다.'
+        },
+        en: {
+          h1: 'Startup Brain Index',
+          desc: 'Please log in to use the service (privacy & security).',
+          desc2: '(After login you can participate in the survey and download the report.)',
+          adminH1: 'Admin Login',
+          email: 'Email',
+          password: 'Password',
+          submit: 'Log In',
+          registerLink: 'Sign Up',
+          findId: 'Find ID',
+          findPw: 'Find Password',
+          lab: 'Jangsan Brain Innovation Data Lab',
+          home: '← Home',
+          admin: 'Admin',
+          switchLabel: '한국어',
+          errorAuth: 'Invalid email or password.'
+        }
+      };
+      function applyLoginLang(lang) {
+        var t = loginT[lang] || loginT.ko;
+        document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+        var isAdmin = new URLSearchParams(window.location.search).get('next') === '/admin';
+        var h1 = document.getElementById('login-h1');
+        if (h1) h1.textContent = isAdmin ? t.adminH1 : t.h1;
+        var el = function(id) { return document.getElementById(id); };
+        if (el('login-desc')) el('login-desc').textContent = t.desc;
+        if (el('login-desc2')) el('login-desc2').textContent = t.desc2;
+        if (el('login-label-email')) el('login-label-email').textContent = t.email;
+        if (el('login-label-pw')) el('login-label-pw').textContent = t.password;
+        if (el('login-submit-btn')) el('login-submit-btn').textContent = t.submit;
+        if (el('login-register-link')) el('login-register-link').textContent = t.registerLink;
+        if (el('btn-find-id-open')) el('btn-find-id-open').textContent = t.findId;
+        if (el('btn-find-pw-open')) el('btn-find-pw-open').textContent = t.findPw;
+        if (el('login-lab')) el('login-lab').textContent = t.lab;
+        if (el('btn-home')) el('btn-home').textContent = t.home;
+        if (el('btn-admin')) el('btn-admin').textContent = t.admin;
+        if (el('login-lang-switch')) el('login-lang-switch').textContent = t.switchLabel;
+      }
+      var currentLang = window.getSbiLang ? window.getSbiLang() : 'ko';
+      applyLoginLang(currentLang);
+      document.getElementById('login-lang-switch').addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var next = (window.getSbiLang && window.getSbiLang() === 'ko') ? 'en' : 'ko';
+        if (window.setSbiLang) window.setSbiLang(next);
+        applyLoginLang(next);
+      });
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('error') === '1') {
+        var errEl = document.getElementById('login-error');
+        if (errEl) {
+          errEl.textContent = (loginT[currentLang] || loginT.ko).errorAuth;
+          errEl.classList.remove('hidden');
+        }
+      }
+      var nextEl = document.getElementById('login-next');
+      if (nextEl && params.get('next')) nextEl.value = params.get('next');
+
+      function openModal(id) {
+        var m = document.getElementById(id);
+        if (!m) return;
+        m.classList.remove('hidden');
+        m.classList.add('flex');
+      }
+      function closeModal(id) {
+        var m = document.getElementById(id);
+        if (!m) return;
+        m.classList.add('hidden');
+        m.classList.remove('flex');
+      }
+      var btnFindIdOpen = document.getElementById('btn-find-id-open');
+      if (btnFindIdOpen) btnFindIdOpen.addEventListener('click', function() { openModal('find-id-modal'); });
+      var btnFindPwOpen = document.getElementById('btn-find-pw-open');
+      if (btnFindPwOpen) btnFindPwOpen.addEventListener('click', function() { openModal('find-pw-modal'); });
+      var btnFindIdClose = document.getElementById('btn-find-id-close');
+      if (btnFindIdClose) btnFindIdClose.addEventListener('click', function() { closeModal('find-id-modal'); });
+      var btnFindPwClose = document.getElementById('btn-find-pw-close');
+      if (btnFindPwClose) btnFindPwClose.addEventListener('click', function() { closeModal('find-pw-modal'); });
+
+      var btnFindIdRun = document.getElementById('btn-find-id-run');
+      if (btnFindIdRun) btnFindIdRun.addEventListener('click', async function() {
+        var resultEl = document.getElementById('find-id-result');
+        var payload = {
+          name: (document.getElementById('find-id-name').value || '').trim(),
+          age: parseInt((document.getElementById('find-id-age').value || '0'), 10) || 0,
+          nationality: (document.getElementById('find-id-nationality').value || '').trim()
+        };
+        try {
+          var res = await fetch('/api/find-id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '조회 실패');
+          var emails = data.emails || [];
+          resultEl.textContent = emails.length ? ('확인된 아이디: ' + emails.join(', ')) : '일치하는 아이디가 없습니다.';
+        } catch (e) {
+          resultEl.textContent = '조회 실패: ' + (e.message || e);
+        }
+      });
+
+      var btnFindPwRun = document.getElementById('btn-find-pw-run');
+      if (btnFindPwRun) btnFindPwRun.addEventListener('click', async function() {
+        var resultEl = document.getElementById('find-pw-result');
+        var payload = {
+          email: (document.getElementById('find-pw-email').value || '').trim(),
+          name: (document.getElementById('find-pw-name').value || '').trim(),
+          age: parseInt((document.getElementById('find-pw-age').value || '0'), 10) || 0,
+          nationality: (document.getElementById('find-pw-nationality').value || '').trim()
+        };
+        try {
+          var res = await fetch('/api/find-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(payload) });
+          var data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '발급 실패');
+          resultEl.textContent = (data.message || '임시 비밀번호 발급 완료') + ' / 임시 비밀번호: ' + (data.temp_password || '-');
+        } catch (e) {
+          resultEl.textContent = '발급 실패: ' + (e.message || e);
+        }
+      });
+      var btnGotoTop = document.getElementById('btn-goto-top');
+      if (btnGotoTop) btnGotoTop.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    })();
+  </script>
+</body>
+</html>

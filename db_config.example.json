@@ -1,0 +1,7 @@
+{
+  "engine": "mysql",
+  "host": "localhost",
+  "user": "닷홈_FTP_아이디",
+  "password": "닷홈_FTP_또는_DB_비밀번호",
+  "database": "닷홈_FTP_아이디"
+}

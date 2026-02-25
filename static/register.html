@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <title>회원가입 - Startup Brain Index</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = { theme: { extend: { colors: { violet: { 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' } }, fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] } } } }
+  </script>
+  <link rel="stylesheet" href="/static/mobile-common.css" />
+  <style>
+    html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; font-size: clamp(14px, 4vw, 18px); }
+    body { min-height: 100vh; font-family: 'Noto Sans KR', sans-serif; background: linear-gradient(165deg, #faf5ff 0%, #f5f3ff 40%, #ede9fe 75%, #e9e5ff 100%); }
+    .card-shadow { box-shadow: 0 8px 24px -4px rgba(124, 58, 237, 0.12); }
+    .required-star { color: #7c3aed; font-weight: 600; }
+    @media (max-width: 767px) { input, button { min-height: 44px; font-size: 16px; } }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex items-center justify-center p-4">
+  <div class="absolute top-4 right-4 z-10">
+    <button type="button" id="register-lang-switch" class="px-3 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm font-medium min-h-[44px]" aria-label="Language">EN</button>
+  </div>
+  <main class="w-full max-w-lg bg-white rounded-3xl shadow-xl border border-violet-100 p-8 card-shadow">
+    <h1 id="register-title" class="text-xl sm:text-2xl font-bold text-violet-900 text-center mb-6">회원가입</h1>
+    <div id="register-success" class="hidden text-center py-6">
+      <p id="register-success-msg" class="text-violet-700 font-semibold text-lg mb-2">회원가입이 완료되었습니다.</p>
+      <p id="register-success-sub" class="text-slate-600 text-sm mb-6">아래 버튼을 눌러 로그인해 주세요.</p>
+      <a id="register-goto-login" href="/login?next=/dashboard" class="inline-block w-full max-w-xs py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-center">로그인하기</a>
+    </div>
+    <form id="register-form" class="space-y-4">
+      <div>
+        <label for="email" class="block text-slate-700 font-medium mb-1">이메일 (아이디) <span class="required-star">*</span></label>
+        <div class="flex gap-2">
+          <input type="email" id="email" name="email" required placeholder="example@email.com" class="flex-1 px-4 py-3 border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-400" autocomplete="email" />
+          <button type="button" id="btn-email-check" class="shrink-0 px-3 py-2 rounded-xl border border-violet-300 text-violet-700 hover:bg-violet-50 text-sm">정상여부</button>
+        </div>
+        <p id="email-check-msg" class="text-sm mt-1 hidden"></p>
+      </div>
+      <div>
+        <label for="password" class="block text-slate-700 font-medium mb-1">비밀번호 (4자 이상) <span class="required-star">*</span></label>
+        <input type="password" id="password" name="password" required minlength="4" class="w-full px-4 py-3 border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-400" />
+      </div>
+      <div>
+        <label for="password2" class="block text-slate-700 font-medium mb-1">비밀번호 확인 <span class="required-star">*</span></label>
+        <input type="password" id="password2" name="password2" required minlength="4" class="w-full px-4 py-3 border border-violet-200 rounded-xl focus:ring-2 focus:ring-violet-400" />
+      </div>
+      <p class="text-violet-700 font-semibold text-sm mt-4 mb-1">프로필 (필수) <span class="required-star">*</span></p>
+      <div>
+        <label for="name" class="block text-slate-600 text-sm mb-1">사용자 이름 <span class="required-star">*</span></label>
+        <input type="text" id="name" name="name" required placeholder="이름" maxlength="64" class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm" />
+      </div>
+      <div>
+        <label id="register-label-gender" class="block text-slate-600 text-sm mb-1">성별 <span class="required-star">*</span></label>
+        <select id="gender" name="gender" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="남">남</option>
+          <option value="여">여</option>
+        </select>
+      </div>
+      <div>
+        <label for="age" class="block text-slate-600 text-sm mb-1">연령 <span class="required-star">*</span></label>
+        <input type="number" id="age" name="age" required min="1" max="120" placeholder="숫자 입력" class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm" />
+      </div>
+      <div>
+        <label for="occupation" class="block text-slate-600 text-sm mb-1">직업 <span class="required-star">*</span></label>
+        <select id="occupation" name="occupation" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="무직">무직</option>
+          <option value="가정주부">가정주부</option>
+          <option value="모름">모름</option>
+          <option value="A 농업·임업·어업">A 농업·임업·어업</option>
+          <option value="B 광업">B 광업</option>
+          <option value="C 제조업">C 제조업</option>
+          <option value="D 전기·가스·증기·공기조절 공급업">D 전기·가스·증기·공기조절 공급업</option>
+          <option value="E 수도·하수·폐기물·원료재생업">E 수도·하수·폐기물·원료재생업</option>
+          <option value="F 건설업">F 건설업</option>
+          <option value="G 도매·소매업">G 도매·소매업</option>
+          <option value="H 운수·창고업">H 운수·창고업</option>
+          <option value="I 숙박·음식점업">I 숙박·음식점업</option>
+          <option value="J 정보통신업">J 정보통신업</option>
+          <option value="K 금융·보험업">K 금융·보험업</option>
+          <option value="L 부동산업">L 부동산업</option>
+          <option value="M 전문·과학·기술 서비스업">M 전문·과학·기술 서비스업</option>
+          <option value="N 사업시설관리·사업지원·임대서비스업">N 사업시설관리·사업지원·임대서비스업</option>
+          <option value="O 공공행정·국방·사회보장행정">O 공공행정·국방·사회보장행정</option>
+          <option value="P 교육서비스업">P 교육서비스업</option>
+          <option value="Q 보건·사회복지서비스업">Q 보건·사회복지서비스업</option>
+          <option value="R 예술·스포츠·여가관련서비스업">R 예술·스포츠·여가관련서비스업</option>
+          <option value="S 협회·단체·수리·기타개인서비스업">S 협회·단체·수리·기타개인서비스업</option>
+          <option value="T 가구내고용·미분류">T 가구내고용·미분류</option>
+        </select>
+      </div>
+      <div>
+        <label for="nationality" class="block text-slate-600 text-sm mb-1">국적 <span class="required-star">*</span></label>
+        <select id="nationality" name="nationality" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="대한민국" selected>대한민국</option>
+          <option value="__custom__">직접 입력</option>
+          <option value="United States">United States</option>
+          <option value="China">China</option>
+          <option value="Japan">Japan</option>
+          <option value="Vietnam">Vietnam</option>
+          <option value="India">India</option>
+          <option value="United Kingdom">United Kingdom</option>
+          <option value="Germany">Germany</option>
+          <option value="France">France</option>
+          <option value="Canada">Canada</option>
+          <option value="Australia">Australia</option>
+          <option value="Indonesia">Indonesia</option>
+          <option value="Thailand">Thailand</option>
+          <option value="Philippines">Philippines</option>
+          <option value="Malaysia">Malaysia</option>
+          <option value="Singapore">Singapore</option>
+          <option value="Russia">Russia</option>
+          <option value="Brazil">Brazil</option>
+          <option value="Mexico">Mexico</option>
+          <option value="Italy">Italy</option>
+          <option value="Spain">Spain</option>
+          <option value="Turkey">Turkey</option>
+          <option value="South Africa">South Africa</option>
+          <option value="Nigeria">Nigeria</option>
+          <option value="Egypt">Egypt</option>
+          <option value="Saudi Arabia">Saudi Arabia</option>
+          <option value="United Arab Emirates">United Arab Emirates</option>
+          <option value="Pakistan">Pakistan</option>
+          <option value="Bangladesh">Bangladesh</option>
+          <option value="Iran">Iran</option>
+          <option value="Poland">Poland</option>
+          <option value="Netherlands">Netherlands</option>
+          <option value="Sweden">Sweden</option>
+          <option value="Switzerland">Switzerland</option>
+          <option value="Argentina">Argentina</option>
+          <option value="Colombia">Colombia</option>
+          <option value="Other">Other</option>
+        </select>
+        <input type="text" id="nationality-custom" name="nationality_custom" placeholder="국적 직접 입력" maxlength="128" class="hidden w-full px-4 py-2 border border-violet-200 rounded-xl text-sm mt-2" />
+      </div>
+      <div>
+        <label for="sleep_hours" class="block text-slate-600 text-sm mb-1">수면시간 (일 평균, 시간) <span class="required-star">*</span></label>
+        <select id="sleep_hours" name="sleep_hours" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="3시 59분 미만">3시 59분 미만</option>
+          <option value="4~4시 59분 미만">4~4시 59분 미만</option>
+          <option value="5~5시 59분 미만">5~5시 59분 미만</option>
+          <option value="6~6시 59분 미만">6~6시 59분 미만</option>
+          <option value="7~7시 59분 미만">7~7시 59분 미만</option>
+          <option value="8~8시 59분 미만">8~8시 59분 미만</option>
+          <option value="9시간 이상">9시간 이상</option>
+        </select>
+      </div>
+      <div>
+        <label for="sleep_quality" class="block text-slate-600 text-sm mb-1">수면의 질 <span class="required-star">*</span></label>
+        <select id="sleep_quality" name="sleep_quality" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="꿀잠">꿀잠</option>
+          <option value="양호">양호</option>
+          <option value="불편">불편</option>
+          <option value="불면">불면</option>
+          <option value="모름">모름</option>
+        </select>
+      </div>
+      <div>
+        <label id="register-label-meal_habit" class="block text-slate-600 text-sm mb-1">식사습관 <span class="required-star">*</span></label>
+        <select id="meal_habit" name="meal_habit" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="규칙">규칙</option>
+          <option value="불규칙">불규칙</option>
+          <option value="모름">모름</option>
+        </select>
+      </div>
+      <div>
+        <label id="register-label-bowel_habit" class="block text-slate-600 text-sm mb-1">배변습관 <span class="required-star">*</span></label>
+        <select id="bowel_habit" name="bowel_habit" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="양호">양호</option>
+          <option value="불편함">불편함</option>
+          <option value="모름">모름</option>
+        </select>
+      </div>
+      <div>
+        <label id="register-label-exercise_habit" class="block text-slate-600 text-sm mb-1">운동습관 <span class="required-star">*</span></label>
+        <select id="exercise_habit" name="exercise_habit" required class="w-full px-4 py-2 border border-violet-200 rounded-xl text-sm">
+          <option value="">선택</option>
+          <option value="규칙">규칙</option>
+          <option value="불규칙">불규칙</option>
+          <option value="거의안함">거의안함</option>
+          <option value="모름">모름</option>
+        </select>
+      </div>
+      <p id="register-error" class="text-red-600 text-sm hidden"></p>
+      <button type="submit" class="w-full py-3 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold">가입하기</button>
+    </form>
+    <p id="register-back-link" class="text-center mt-4"><a href="/login" class="text-violet-600 hover:underline text-sm" id="register-back-link-a">로그인으로 돌아가기</a></p>
+    <div class="mt-8 pt-6 border-t border-violet-100 text-center">
+      <button type="button" id="btn-goto-top" class="inline-block px-4 py-2 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm min-h-[44px]">↑ 위로 가기</button>
+    </div>
+  </main>
+  <script src="/static/sbi-lang.js"></script>
+  <script>
+    (function() {
+      var R = {
+        ko: {
+          title: '회원가입',
+          emailLabel: '이메일 (아이디)',
+          passwordLabel: '비밀번호 (4자 이상)',
+          password2Label: '비밀번호 확인',
+          profileLabel: '프로필 (필수)',
+          nameLabel: '사용자 이름',
+          genderLabel: '성별',
+          ageLabel: '연령',
+          occupationLabel: '직업',
+          nationalityLabel: '국적',
+          sleepLabel: '수면시간 (일 평균, 시간)',
+          sleepQualityLabel: '수면의 질',
+          mealLabel: '식사습관',
+          bowelLabel: '배변습관',
+          exerciseLabel: '운동습관',
+          submitBtn: '가입하기',
+          backLink: '로그인으로 돌아가기',
+          gotoTop: '↑ 위로 가기',
+          switchLabel: 'EN',
+          selectOption: '선택',
+          customNationality: '직접 입력',
+          customNationalityPlaceholder: '국적 직접 입력',
+          emailCheckBtn: '정상여부'
+        },
+        en: {
+          title: 'Sign Up',
+          emailLabel: 'Email (ID)',
+          passwordLabel: 'Password (4+ chars)',
+          password2Label: 'Confirm Password',
+          profileLabel: 'Profile (Required)',
+          nameLabel: 'Name',
+          genderLabel: 'Gender',
+          ageLabel: 'Age',
+          occupationLabel: 'Occupation',
+          nationalityLabel: 'Nationality',
+          sleepLabel: 'Sleep (avg hours)',
+          sleepQualityLabel: 'Sleep quality',
+          mealLabel: 'Meal habit',
+          bowelLabel: 'Bowel habit',
+          exerciseLabel: 'Exercise habit',
+          submitBtn: 'Sign Up',
+          backLink: 'Back to Login',
+          gotoTop: '↑ Top',
+          switchLabel: '한국어',
+          selectOption: 'Select',
+          customNationality: 'Other (type)',
+          customNationalityPlaceholder: 'Enter nationality',
+          emailCheckBtn: 'Check'
+        }
+      };
+      function applyRegisterLang(lang) {
+        var t = R[lang] || R.ko;
+        document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+        var el = function(id) { return document.getElementById(id); };
+        if (el('register-title')) el('register-title').textContent = t.title;
+        if (el('register-lang-switch')) el('register-lang-switch').textContent = t.switchLabel;
+        var         labels = [
+          ['email', t.emailLabel], ['password', t.passwordLabel], ['password2', t.password2Label],
+          ['name', t.nameLabel], ['gender', t.genderLabel], ['age', t.ageLabel], ['occupation', t.occupationLabel],
+          ['nationality', t.nationalityLabel], ['sleep_hours', t.sleepLabel], ['sleep_quality', t.sleepQualityLabel],
+          ['meal_habit', t.mealLabel], ['bowel_habit', t.bowelLabel], ['exercise_habit', t.exerciseLabel]
+        ];
+        labels.forEach(function(pair) {
+          var lab = document.querySelector('label[for="' + pair[0] + '"]') || document.getElementById('register-label-' + pair[0]);
+          if (lab) lab.innerHTML = pair[1] + ' <span class="required-star">*</span>';
+        });
+        var profileP = document.querySelector('p.text-violet-700.font-semibold.text-sm.mt-4.mb-1');
+        if (profileP) profileP.innerHTML = t.profileLabel + ' <span class="required-star">*</span>';
+        if (el('register-form')) {
+          var btn = el('register-form').querySelector('button[type="submit"]');
+          if (btn) btn.textContent = t.submitBtn;
+        }
+        if (el('btn-email-check')) el('btn-email-check').textContent = t.emailCheckBtn;
+        if (el('register-back-link-a')) el('register-back-link-a').textContent = t.backLink;
+        if (el('btn-goto-top')) el('btn-goto-top').textContent = t.gotoTop;
+        if (el('nationality-custom')) el('nationality-custom').placeholder = t.customNationalityPlaceholder;
+        var optCustom = document.querySelector('#nationality option[value="__custom__"]');
+        if (optCustom) optCustom.textContent = t.customNationality;
+      }
+      var currentLang = window.getSbiLang ? window.getSbiLang() : 'ko';
+      applyRegisterLang(currentLang);
+      var sw = document.getElementById('register-lang-switch');
+      if (sw) sw.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        var next = (window.getSbiLang && window.getSbiLang() === 'ko') ? 'en' : 'ko';
+        if (window.setSbiLang) window.setSbiLang(next);
+        applyRegisterLang(next);
+      });
+    })();
+    var btnGotoTop = document.getElementById('btn-goto-top');
+    if (btnGotoTop) btnGotoTop.addEventListener('click', function() { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+
+    (function() {
+      var emailInput = document.getElementById('email');
+      var emailMsg = document.getElementById('email-check-msg');
+      var emailCheckBtn = document.getElementById('btn-email-check');
+      var checkTimeout = null;
+      var emailCheckedValue = '';
+      var emailCheckedOk = false;
+      function checkEmail() {
+        var v = (emailInput.value || '').trim().toLowerCase();
+        if (!v) {
+          emailMsg.classList.add('hidden');
+          emailMsg.textContent = '';
+          emailCheckedValue = '';
+          emailCheckedOk = false;
+          return Promise.resolve({ valid: false, available: false });
+        }
+        return fetch('/api/check-email?email=' + encodeURIComponent(v))
+          .then(function(r) { return r.json(); })
+          .then(function(data) {
+            var isOk = data.valid && data.available;
+            emailMsg.classList.remove('hidden');
+            emailMsg.classList.remove('text-green-600', 'text-red-600');
+            if (isOk) {
+              emailMsg.textContent = '정상입니다. ' + (data.message || '사용 가능한 이메일입니다.');
+              emailMsg.classList.add('text-green-600');
+              emailCheckedValue = v;
+              emailCheckedOk = true;
+            } else {
+              emailMsg.textContent = '정상이 아닙니다. ' + (data.message || '이메일을 확인해 주세요.');
+              emailMsg.classList.add('text-red-600');
+              emailCheckedValue = v;
+              emailCheckedOk = false;
+            }
+            return data;
+          })
+          .catch(function() {
+            emailMsg.classList.remove('hidden');
+            emailMsg.classList.remove('text-green-600');
+            emailMsg.classList.add('text-red-600');
+            emailMsg.textContent = '이메일 확인 중 오류가 발생했습니다.';
+            emailCheckedValue = '';
+            emailCheckedOk = false;
+            return { valid: false, available: false };
+          });
+      }
+      emailInput.addEventListener('blur', function() { checkEmail(); });
+      emailInput.addEventListener('input', function() {
+        emailCheckedValue = '';
+        emailCheckedOk = false;
+        if (checkTimeout) clearTimeout(checkTimeout);
+        if (!(emailInput.value || '').trim()) { emailMsg.classList.add('hidden'); emailMsg.textContent = ''; return; }
+        checkTimeout = setTimeout(checkEmail, 500);
+      });
+      if (emailCheckBtn) {
+        emailCheckBtn.addEventListener('click', function() {
+          checkEmail();
+        });
+      }
+      window.__registerCheckEmail = checkEmail;
+      window.__registerIsEmailChecked = function(v) {
+        var cur = (v || '').trim().toLowerCase();
+        return !!cur && emailCheckedOk && emailCheckedValue === cur;
+      };
+    })();
+
+    (function() {
+      var natSelect = document.getElementById('nationality');
+      var natCustom = document.getElementById('nationality-custom');
+      if (natSelect && natCustom) {
+        natSelect.addEventListener('change', function() {
+          if (natSelect.value === '__custom__') {
+            natCustom.classList.remove('hidden');
+            natCustom.required = true;
+          } else {
+            natCustom.classList.add('hidden');
+            natCustom.required = false;
+            natCustom.value = '';
+          }
+        });
+        if (natSelect.value === '__custom__') { natCustom.classList.remove('hidden'); natCustom.required = true; }
+      }
+    })();
+
+    document.getElementById('register-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      var err = document.getElementById('register-error');
+      var emailVal = (document.getElementById('email').value || '').trim().toLowerCase();
+      if (!emailVal) { err.textContent = '이메일을 입력해 주세요.'; err.classList.remove('hidden'); return; }
+      // 정상여부 버튼 기반 확인 상태 사용. 미확인/변경된 경우 즉시 재검사.
+      if (!(window.__registerIsEmailChecked && window.__registerIsEmailChecked(emailVal))) {
+        if (window.__registerCheckEmail) await window.__registerCheckEmail();
+      }
+      try {
+        var checkRes = await fetch('/api/check-email?email=' + encodeURIComponent(emailVal));
+        var checkData = await checkRes.json();
+        if (!checkData.valid || !checkData.available) {
+          err.textContent = checkData.message || '이메일을 확인해 주세요. (형식·중복·가상 이메일 불가)';
+          err.classList.remove('hidden');
+          return;
+        }
+      } catch (checkErr) {
+        err.textContent = '이메일 확인 중 오류가 발생했습니다. 네트워크를 확인해 주세요.';
+        err.classList.remove('hidden');
+        return;
+      }
+      var pw = document.getElementById('password').value;
+      var pw2 = document.getElementById('password2').value;
+      if (pw !== pw2) { err.textContent = '비밀번호가 일치하지 않습니다.'; err.classList.remove('hidden'); return; }
+      if (pw.length < 4) { err.textContent = '비밀번호는 4자 이상이어야 합니다.'; err.classList.remove('hidden'); return; }
+      err.classList.add('hidden');
+      try {
+        var ageVal = document.getElementById('age').value;
+        var natSel = document.getElementById('nationality').value;
+        var natVal = (natSel === '__custom__') ? (document.getElementById('nationality-custom').value || '').trim() : natSel;
+        if (!natVal) { err.textContent = '국적을 선택하거나 직접 입력하세요.'; err.classList.remove('hidden'); return; }
+        var payload = {
+          email: document.getElementById('email').value.trim(),
+          password: pw,
+          name: document.getElementById('name').value.trim() || null,
+          gender: document.getElementById('gender').value || null,
+          age: ageVal ? parseInt(ageVal, 10) : null,
+          occupation: document.getElementById('occupation').value.trim() || null,
+          nationality: natVal,
+          sleep_hours: document.getElementById('sleep_hours').value || null,
+          sleep_quality: document.getElementById('sleep_quality').value || null,
+          meal_habit: document.getElementById('meal_habit').value || null,
+          bowel_habit: document.getElementById('bowel_habit').value || null,
+          exercise_habit: document.getElementById('exercise_habit').value || null
+        };
+        var res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        var data = await res.json();
+        if (!res.ok) {
+          var detail = (data.detail || '가입에 실패했습니다.').trim();
+          if (res.status === 503 && (detail.indexOf('데이터베이스') >= 0 || detail.indexOf('MySQL') >= 0 || detail.indexOf('연결') >= 0 || detail.indexOf('DB') >= 0)) {
+            err.textContent = '회원가입을 위해 서버 DB 연결이 필요합니다. MySQL 서버가 실행 중인지, 서버의 DB 호스트(환경변수 DB_HOST) 설정이 맞는지 확인해 주세요. 잠시 후 다시 시도하거나 관리자에게 문의하세요.';
+          } else {
+            err.textContent = detail;
+          }
+          err.classList.remove('hidden');
+          return;
+        }
+        if (window.setSbiLang && window.langFromNationality) {
+          window.setSbiLang(window.langFromNationality(natVal));
+        }
+        // 가입 즉시 자동 로그인 -> 설문진단 대시보드로 이동
+        var loginRes = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: emailVal, password: pw })
+        });
+        if (loginRes.ok) {
+          window.location.replace('/dashboard');
+          return;
+        }
+        // 자동 로그인 실패 시 기존 성공 화면 fallback
+        document.getElementById('register-form').classList.add('hidden');
+        var backLink = document.getElementById('register-back-link');
+        if (backLink) backLink.classList.add('hidden');
+        document.getElementById('register-success').classList.remove('hidden');
+      } catch (x) {
+        err.textContent = '네트워크 오류입니다. 연결 주소를 확인해 주세요.';
+        err.classList.remove('hidden');
+      }
+    });
+  </script>
+</body>
+</html>

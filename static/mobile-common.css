@@ -1,0 +1,66 @@
+/* 모바일 표준화 - 모든 기종 공통 */
+/* viewport는 각 HTML의 meta viewport로 설정 권장: width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover */
+
+* {
+  -webkit-tap-highlight-color: rgba(124, 58, 237, 0.15);
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  /* 노치/세이프에리어 대응 */
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* 터치 타겟 최소 44px (Apple HIG / Material) */
+@media (max-width: 767px) {
+  button,
+  [role="button"],
+  a.rounded-xl,
+  input[type="submit"],
+  input[type="button"] {
+    min-height: 44px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  input:not([type="hidden"]),
+  textarea,
+  select {
+    min-height: 44px;
+    font-size: 16px !important; /* iOS 줌 방지 */
+  }
+  select {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+}
+
+/* 스크롤 영역 터치 스크롤 부드럽게 */
+.overflow-y-auto,
+.overflow-x-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 테이블/카드 가로 스크롤 시 스크롤바 표시 */
+.admin-table-wrap,
+.overflow-x-auto {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 안드로이드·모바일: 차트 컨테이너 넘침 방지 */
+@media (max-width: 640px) {
+  main .h-72, main .h-64 { min-height: 12rem; max-height: 18rem; }
+  main canvas { max-width: 100%; display: block; }
+}

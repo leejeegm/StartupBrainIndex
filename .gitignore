@@ -1,0 +1,16 @@
+# DB 설정 (비밀번호 포함, 저장소에 올리지 않음)
+db_config.json
+
+# 환경 변수 (시크릿). .env.example 은 커밋함
+.env
+.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+venv/
+*.db
+# PDF 생성 출력 (배포 시 서버에서 자동 생성)
+output/

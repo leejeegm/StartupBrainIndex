@@ -1,0 +1,2355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#6d28d9" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Startup Brain Index : SBI 창업가 뇌 지수 측정</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/mobile-common.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            violet: { 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' },
+            primary: { 50: '#f5f3ff', 100: '#ede9fe', 500: '#7c3aed', 600: '#6d28d9', 700: '#5b21b6' },
+            accent: { 100: '#ede9fe', 400: '#a78bfa', 500: '#8b5cf6', 600: '#7c3aed' },
+            panel: '#faf5ff'
+          },
+          fontFamily: { sans: ['Noto Sans KR', 'sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* 모바일·안드로이드: 뷰포트·폰트·터치 */
+    html { font-size: clamp(14px, 4vw, 18px); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    body { font-size: 1rem; min-height: 100vh; font-family: 'Noto Sans KR', sans-serif; -webkit-text-size-adjust: 100%; background: #f8fafc; line-height: 1.6; }
+    @media (max-width: 639px) { html { font-size: clamp(15px, 4.2vw, 17px); } }
+    @media (min-width: 1024px) { html { font-size: 18px; } body { background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%); } }
+    [type="radio"]:checked + span { font-weight: 700; color: #6d28d9; }
+    .progress-fill { transition: width 0.35s ease-out; }
+    .domain-bar { transition: width 0.6s ease-out; }
+    .step-link.rounded-xl { border-radius: 0.75rem; }
+    @media (max-width: 767px) {
+      button, .rounded-xl[class*="px-"], a.rounded-xl { min-height: 44px; padding-top: 0.5rem; padding-bottom: 0.5rem; }
+      input[type="text"], input[type="email"], input[type="password"], input[type="number"], textarea, select { min-height: 44px; font-size: 16px; }
+    }
+    /* 고급 가독성: 제목·섹션·여백 통일 */
+    .panel-step h3, .panel-step .text-lg { letter-spacing: -0.01em; }
+    #upper-content .panel-step { max-width: 56rem; }
+    section.bg-panel, section.bg-white { border-radius: 1rem; }
+    .lower-panel-eeg h2 { font-size: 1.125rem; letter-spacing: -0.02em; }
+    .lower-panel-eeg .text-slate-600 { font-size: 0.9375rem; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen">
+  <!-- Top Banner -->
+  <header class="bg-white/95 backdrop-blur border-b border-violet-100 shadow-sm">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 py-4 flex items-center justify-between flex-wrap gap-3">
+      <div class="min-w-0">
+        <h1 class="text-xl sm:text-2xl font-bold text-violet-700 truncate">Startup Brain Index</h1>
+        <p id="dashboard-subtitle" class="text-slate-600 text-sm sm:text-base mt-0.5 truncate">SBI 창업가 뇌 지수 · 셀프 역량 리포트</p>
+      </div>
+      <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+        <span id="admin-badge" class="hidden px-2 py-1 rounded-lg bg-violet-200 text-violet-800 text-xs font-medium">관리자 모드</span>
+        <a href="#" id="btn-back" class="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-sm sm:text-base transition">이전</a>
+        <a href="/" id="btn-home" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm sm:text-base transition shadow-sm">홈</a>
+        <span id="user-name" class="text-slate-500 text-sm sm:text-base hidden sm:inline"></span>
+        <button type="button" id="dashboard-lang-switch" class="px-3 py-1.5 rounded-lg border border-violet-200 text-violet-700 hover:bg-violet-50 text-sm">EN</button>
+        <a href="/api/logout" id="logout-link" class="text-slate-500 hover:text-slate-700 text-sm sm:text-base transition">로그아웃</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="flex max-w-[1600px] mx-auto min-h-[calc(100vh-5rem)] relative">
+    <!-- 햄버거 (작은 화면에서 사이드바 토글) -->
+    <button type="button" id="sidebar-toggle" class="lg:hidden fixed left-4 top-20 z-30 p-2 rounded-lg bg-violet-100 text-violet-700 hover:bg-violet-200 shadow" aria-label="메뉴 열기">
+      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <!-- Left Sidebar: 축소 시 너비 자동 조절, 작은 화면에서 토글 가능 -->
+    <aside id="sidebar" class="w-20 sm:w-40 md:w-52 lg:w-64 shrink-0 bg-white border-r border-violet-100 min-h-[calc(100vh-5rem)] p-3 sm:p-5 transition-all duration-300 ease-out lg:translate-x-0 fixed lg:static inset-y-0 left-0 top-[5rem] z-20 -translate-x-full lg:translate-x-0">
+      <p id="sidebar-menu-label" class="text-slate-600 font-medium mb-3 sm:mb-4 text-xs sm:text-base lg:text-lg truncate">메뉴</p>
+      <nav class="space-y-1 sm:space-y-2">
+        <a href="#" data-step="1" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-1" class="hidden sm:inline">Step 1: 설문 진단</span><span class="sm:hidden font-bold">1</span><span id="badge-step1" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+        <a href="#" data-step="2" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-2" class="hidden sm:inline">Step 2: 결과 / PDF</span><span class="sm:hidden font-bold">2</span><span id="badge-step2" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+        <a href="#" data-step="3" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-3" class="hidden sm:inline">Step 3: 뇌파·시각화</span><span class="sm:hidden font-bold">3</span><span id="badge-step3" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+        <a href="#" data-step="4" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-4" class="hidden sm:inline">Step 4: AI 상담</span><span class="sm:hidden font-bold">4</span><span id="badge-step4" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+      </nav>
+      <div class="mt-6 sm:mt-8 pt-4 border-t border-violet-100">
+        <button type="button" id="btn-save" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-panel hover:bg-accent-100 text-slate-700 text-xs sm:text-base lg:text-lg">저장·불러오기</button>
+      </div>
+      <div class="mt-3 sm:mt-4">
+        <a href="#" data-step="5" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-xs sm:text-base lg:text-lg"><span id="step-label-5" class="hidden sm:inline">게시판 및 자료실</span><span id="step-label-5-short" class="sm:hidden">게시판</span></a>
+      </div>
+    </aside>
+    <div id="sidebar-backdrop" class="fixed inset-0 bg-black/30 z-10 lg:hidden hidden" aria-hidden="true"></div>
+
+    <!-- Main: Upper + Lower Panel -->
+    <main class="flex-1 p-6 overflow-auto">
+      <!-- Upper Panel -->
+      <section class="bg-panel rounded-2xl border border-slate-200 p-6 sm:p-8 mb-6 shadow-sm">
+        <h2 id="upper-title" class="text-lg sm:text-xl font-bold text-slate-800 mb-4 sm:mb-5 tracking-tight">설문 관련 입력 및 조회</h2>
+        <div id="upper-content">
+          <!-- 관리자: Step 1~4 클릭 시 전체 사용자 목록 (스크롤, 보기·수정·삭제) -->
+          <div id="admin-list-panel" class="hidden">
+            <p class="mb-2 px-3 py-2 rounded-lg bg-violet-50 text-violet-800 text-sm border border-violet-200">관리자: 전체 사용자 데이터를 조회·수정·삭제할 수 있습니다.</p>
+            <h3 id="admin-list-title" class="text-lg font-bold text-violet-900 mb-2"></h3>
+            <p class="text-slate-600 text-sm mb-3">사용자가 작성·수정·저장한 모든 내용입니다. 목록을 클릭해 보기·수정·삭제할 수 있으며, 새로 저장된 항목은 새로고침 시 반영됩니다.</p>
+            <button type="button" id="admin-list-refresh" class="mb-3 px-4 py-2 rounded-xl bg-violet-100 text-violet-700 text-sm hover:bg-violet-200">목록 새로고침</button>
+            <div id="admin-list-body" class="space-y-2 max-h-[60vh] overflow-y-auto border border-violet-100 rounded-xl p-4 bg-white"></div>
+          </div>
+          <!-- 관리자 상세/수정 모달 -->
+          <div id="admin-detail-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+              <div class="p-4 border-b border-violet-100 flex justify-between items-center">
+                <h3 id="admin-detail-title" class="font-bold text-violet-900"></h3>
+                <button type="button" id="admin-detail-close" class="px-3 py-1 rounded-lg border border-slate-300 text-slate-600">닫기</button>
+              </div>
+              <div id="admin-detail-content" class="p-4 overflow-y-auto flex-1 text-sm text-slate-700"></div>
+              <div class="p-4 border-t border-violet-100 flex gap-2">
+                <input type="text" id="admin-edit-title-input" class="hidden flex-1 px-3 py-2 border border-violet-200 rounded-xl" placeholder="제목 수정" />
+                <button type="button" id="admin-edit-save" class="hidden px-4 py-2 rounded-xl bg-violet-600 text-white text-sm">수정 저장</button>
+                <button type="button" id="admin-delete-btn" class="px-4 py-2 rounded-xl bg-red-50 text-red-600 text-sm hover:bg-red-100">삭제</button>
+              </div>
+            </div>
+          </div>
+          <!-- Step 1: Survey -->
+          <div id="panel-step1" class="panel-step">
+            <p id="survey-desc" class="text-slate-600 mb-5 text-lg">문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)</p>
+            <div class="flex items-center justify-between mb-4">
+              <span class="font-medium text-slate-600 text-lg">진행률</span>
+              <span id="progress-text" class="font-bold text-primary-600 text-lg">0 / 96</span>
+            </div>
+            <div class="h-3 bg-slate-200 rounded-full overflow-hidden mb-2">
+              <div id="progress-fill" class="progress-fill h-full bg-primary-500 rounded-full" style="width: 0%"></div>
+            </div>
+            <div id="unanswered-row" class="hidden flex flex-wrap items-center gap-3 mb-4">
+              <div class="px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm font-medium">현재 미응답 <span id="unanswered-count">0</span>건</div>
+              <button type="button" id="btn-show-unanswered-list" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm hover:bg-slate-100">미응답 번호보기</button>
+            </div>
+            <div id="unanswered-list-box" class="hidden mb-4 p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-sm"></div>
+            <div class="flex flex-wrap gap-3 items-center mb-4">
+              <button type="button" id="btn-short-survey" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">간편 설문 (하위요소당 2문항)</button>
+              <button type="button" id="btn-full-survey" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base hidden">전체 설문 (96문항)</button>
+              <button type="button" id="btn-retry-random" class="px-4 py-2 rounded-xl border border-primary-500 text-primary-600 hover:bg-primary-50 text-base">다시하기 (역량별 랜덤 제시)</button>
+              <button type="button" id="btn-survey-load" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-base">불러오기</button>
+              <button type="button" id="btn-survey-save-new" class="hidden px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-base">새로저장</button>
+            </div>
+            <div id="questions-container" class="space-y-5 max-h-[55vh] overflow-y-auto pr-2"></div>
+            <p id="unanswered-hint" class="hidden mt-2 text-red-600 text-lg"></p>
+            <div class="mt-8">
+              <button id="submit-survey-btn" disabled class="px-8 py-4 rounded-xl font-semibold bg-slate-300 text-slate-500 cursor-not-allowed text-lg">제출 결과 보기 (모두 응답 후 활성화)</button>
+            </div>
+          </div>
+          <!-- Step 2: Result + PDF -->
+          <div id="panel-step2" class="panel-step hidden">
+            <div id="result-summary" class="mb-4">
+              <p class="text-slate-600 text-base">진단을 제출하면 여기에 결과가 표시됩니다.</p>
+            </div>
+            <div id="result-cards" class="grid gap-4 sm:grid-cols-2 mb-4"></div>
+            <div id="result-radar-wrap" class="hidden mb-4">
+              <p class="text-slate-700 font-medium mb-2 text-base">4대 영역 방사형</p>
+              <div class="h-64 sm:h-72 max-w-full"><canvas id="result-radar-chart"></canvas></div>
+            </div>
+            <div id="result-ai-interpret" class="hidden mb-5 p-4 bg-white rounded-xl border border-slate-200">
+              <p class="text-slate-700 font-medium mb-3 text-lg">AI 해석 — 공감·동기부여·창의·혁신·개방·공생을 통한 자신 깨우기</p>
+              <div id="result-ai-summary" class="text-slate-600 text-base mb-3"></div>
+              <div id="result-ai-domains" class="space-y-2 text-slate-600 text-base"></div>
+              <div id="result-ai-extended" class="mt-4 pt-4 border-t border-slate-200 text-slate-600 text-base space-y-3"></div>
+            </div>
+            <div id="result-eeg-visual-desc" class="hidden mb-5 p-4 bg-violet-50 rounded-xl border border-violet-200">
+              <p class="text-violet-800 font-semibold mb-3 text-lg">뇌파 데이터 및 시각화 상세 설명</p>
+              <div id="result-eeg-desc-content" class="text-slate-700 text-base space-y-3"></div>
+            </div>
+            <div class="flex flex-wrap gap-4 items-center">
+              <button id="btn-download-pdf" class="hidden px-6 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">PDF 보고서 다운로드</button>
+              <a id="link-pdf" href="#" target="_blank" class="hidden text-lg text-primary-600 underline">보고서 열기</a>
+            </div>
+          </div>
+          <!-- Step 3: 뇌파 시각화 -->
+          <div id="panel-step3" class="panel-step hidden">
+            <p class="text-slate-600 mb-4 text-lg">뇌파 원천 데이터를 불러오거나, 분석 결과 주요 지표를 입력해 시각화와 AI 해석을 확인하세요.</p>
+            <div class="mb-4 p-3 bg-violet-50 rounded-xl border border-violet-200 text-sm text-slate-700" data-indicator-formula-admin-only>
+              <p class="font-semibold text-violet-900 mb-2">지표 산출식</p>
+              <p class="mb-1">· 설문 1~5점 → 0~100: (점수−1)÷4×100</p>
+              <p class="mb-1">· 영역별 통합 = (S_norm×w_s)+(E×w_e). 동기부여 0.7/0.3, 위기극복 0.5/0.5, 두뇌계발 0.6/0.4, 창업의식 0.8/0.2.</p>
+              <p>· 통합지수 = 영역별 통합점수 평균 (0~100)</p>
+            </div>
+            <!-- 1) 뇌파 원천 데이터 불러오기 -->
+            <div class="mb-6 p-4 bg-violet-50 rounded-xl border border-violet-100">
+              <p class="text-violet-800 font-medium mb-2 text-base">뇌파 원천 데이터 불러오기</p>
+              <p class="text-slate-600 text-sm mb-2">JSON 또는 CSV 파일을 선택하세요. (예: motivation, resilience, innovation, responsibility 각 0~100)</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <input type="file" id="eeg-file-input" accept=".json,.csv,application/json,text/csv" class="text-sm min-h-[44px]" />
+                <button type="button" id="eeg-load-file" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm min-h-[44px]">불러오기</button>
+                <button type="button" id="eeg-save-current" class="hidden px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-sm min-h-[44px]">저장</button>
+                <button type="button" id="eeg-list-open" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-sm min-h-[44px]">목록보기</button>
+              </div>
+              <div id="eeg-preview-wrap" class="hidden mt-4">
+                <p class="text-violet-800 font-medium mb-2 text-sm">불러온 데이터 미리보기 (전체 컬럼, 최대 5케이스)</p>
+                <div class="border border-violet-200 rounded-xl overflow-auto max-h-48 bg-white">
+                  <table id="eeg-preview-table" class="w-full text-sm border-collapse"></table>
+                </div>
+              </div>
+            </div>
+            <!-- 2) 뇌파 분석 결과 주요 지표: ① 4가지 영역 지수 ② 실제 뇌파 주요 지표 -->
+            <div class="mb-6 p-4 bg-violet-50 rounded-xl border border-violet-100">
+              <p class="text-violet-800 font-medium mb-3 text-base">뇌파 분석 결과 주요 지표 입력</p>
+              <p class="text-slate-600 text-xs mb-2">① 4가지 영역 지수 (0~100)</p>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                <div><label class="block text-slate-600 text-xs mb-1">창업공감·동기부여</label><input type="number" id="eeg-input-motivation" min="0" max="100" step="0.1" placeholder="0~100" class="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">위기감수·극복</label><input type="number" id="eeg-input-resilience" min="0" max="100" step="0.1" placeholder="0~100" class="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">두뇌활용·계발</label><input type="number" id="eeg-input-innovation" min="0" max="100" step="0.1" placeholder="0~100" class="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">주체적·창업의식</label><input type="number" id="eeg-input-responsibility" min="0" max="100" step="0.1" placeholder="0~100" class="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm" /></div>
+              </div>
+              <p class="text-slate-600 text-xs mb-2">② 실제 뇌파분석 주요 지표 (선택 입력)</p>
+              <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+                <div><label class="block text-slate-600 text-xs mb-1">Alpha</label><input type="number" id="eeg-input-alpha" min="0" step="0.01" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">Beta</label><input type="number" id="eeg-input-beta" min="0" step="0.01" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">Theta</label><input type="number" id="eeg-input-theta" min="0" step="0.01" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">Delta</label><input type="number" id="eeg-input-delta" min="0" step="0.01" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">Engagement(0~100)</label><input type="number" id="eeg-input-engagement" min="0" max="100" step="0.1" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+                <div><label class="block text-slate-600 text-xs mb-1">Focus(0~100)</label><input type="number" id="eeg-input-focus" min="0" max="100" step="0.1" placeholder="—" class="w-full px-2 py-1.5 border border-violet-200 rounded-lg text-sm" /></div>
+              </div>
+              <button type="button" id="eeg-apply-inputs" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm">적용 및 시각화</button>
+            </div>
+            <!-- 3) 시각화 화면 -->
+            <div id="eeg-viz-section" class="mb-6">
+              <p id="eeg-apply-message" class="hidden text-violet-600 font-medium text-sm mb-2"></p>
+              <p class="text-slate-700 font-medium mb-3 text-lg">시각화</p>
+              <div id="eeg-data-table" class="overflow-x-auto text-lg border border-slate-200 rounded-xl"></div>
+              <div class="mt-4 h-72"><canvas id="eeg-chart"></canvas></div>
+              <div id="eeg-wave-wrap" class="mt-6">
+                <p class="text-slate-700 font-medium mb-3 text-lg">뇌파 종류별 파동 그래프</p>
+                <div class="h-64"><canvas id="eeg-wave-chart"></canvas></div>
+              </div>
+            </div>
+            <!-- 4) AI 기반 추가 해석 및 설명 보고서 -->
+            <div id="eeg-ai-report-wrap" class="p-5 bg-white rounded-xl border-2 border-violet-200">
+              <p class="text-violet-800 font-semibold mb-3 text-lg">AI 기반 추가 해석 및 설명 보고서</p>
+              <div id="eeg-ai-report" class="text-slate-600 text-base space-y-3"></div>
+            </div>
+          </div>
+          <!-- Step 4: AI Chat -->
+          <div id="panel-step4" class="panel-step hidden">
+            <p class="text-slate-600 mb-5 text-lg">AI 기반 진단 결과 상담 및 대화</p>
+            <div id="chat-viz-wrap" class="hidden mb-5 p-4 bg-violet-50 rounded-xl border border-violet-200">
+              <p class="text-violet-800 font-semibold mb-3 text-base">역량·뇌파 시각화 (상담 참고용)</p>
+              <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                  <p class="text-slate-600 text-sm mb-2">4대 영역 역량 지수</p>
+                  <div class="h-48"><canvas id="chat-eeg-chart"></canvas></div>
+                </div>
+                <div>
+                  <p class="text-slate-600 text-sm mb-2">하위역량 12가지 점수</p>
+                  <div class="h-48"><canvas id="chat-capability-chart"></canvas></div>
+                </div>
+              </div>
+              <p class="text-slate-500 text-xs mt-2">설문 제출 후 역량·뇌파 지표가 위 도표에 반영됩니다. AI 답변과 함께 참고하세요.</p>
+            </div>
+            <div id="suggested-questions" class="hidden mb-4 p-3 bg-slate-50 rounded-xl border border-slate-200">
+              <p class="text-slate-700 font-medium mb-2 text-base">질문 추천</p>
+              <div id="suggested-questions-list" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div id="keyword-search-wrap" class="hidden mb-4">
+              <p class="text-slate-700 font-medium mb-2 text-base">관심 키워드로 설문·보고서 연관 내용 보기</p>
+              <div class="flex gap-2 mb-2">
+                <input type="text" id="keyword-input" placeholder="예: 동기부여, 위기극복" class="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-base" />
+                <button type="button" id="keyword-search-btn" class="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 hover:bg-slate-300 text-base">검색</button>
+              </div>
+              <div id="keyword-result" class="p-3 bg-white rounded-xl border border-slate-200 text-slate-600 text-base min-h-[60px]"></div>
+              <button type="button" id="keyword-add-report" class="hidden mt-2 px-4 py-2 rounded-xl bg-accent-500 text-white hover:bg-accent-600 text-sm">보고서에 추가</button>
+            </div>
+            <div id="chat-messages" class="bg-white rounded-xl border border-slate-200 p-5 min-h-[220px] max-h-[380px] overflow-y-auto space-y-4 text-lg"></div>
+            <div class="flex gap-3 mt-4">
+              <input type="text" id="chat-input" placeholder="궁금한 점을 입력하세요" class="flex-1 px-5 py-3 border border-slate-300 rounded-xl text-lg" />
+              <button type="button" id="chat-send" class="px-5 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">전송</button>
+            </div>
+          </div>
+          <!-- Step 5: 게시판 및 자료실 -->
+          <div id="panel-step5" class="panel-step hidden">
+            <p class="text-slate-600 mb-4 text-lg">게시판과 자료실 목록을 보고 검색·등록·수정할 수 있습니다.</p>
+            <div class="flex flex-wrap items-center gap-3 mb-4">
+              <select id="board-type-filter" class="px-3 py-2 border border-violet-200 rounded-xl text-slate-700 text-base">
+                <option value="">전체</option>
+                <option value="board">게시판</option>
+                <option value="resource">자료실</option>
+              </select>
+              <input type="text" id="board-search" placeholder="제목·내용 검색" class="px-4 py-2 border border-violet-200 rounded-xl text-base flex-1 min-w-[160px]" />
+              <button type="button" id="board-search-btn" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-base">검색</button>
+              <button type="button" id="board-add-btn" class="px-4 py-2 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-base">등록</button>
+            </div>
+            <div id="board-list-wrap" class="overflow-x-auto rounded-xl border border-slate-200 bg-white min-h-[200px]">
+              <table class="w-full text-base">
+                <thead><tr class="bg-violet-50 border-b border-violet-100"><th class="p-3 text-left text-slate-700">구분</th><th class="p-3 text-left text-slate-700">제목</th><th class="p-3 text-left text-slate-700">수정일</th><th class="p-3 text-right text-slate-700">관리</th></tr></thead>
+                <tbody id="board-list-tbody"></tbody>
+              </table>
+            </div>
+            <div id="board-form-wrap" class="hidden mt-6 p-5 bg-violet-50 rounded-xl border border-violet-200">
+              <p class="text-violet-800 font-semibold mb-3 text-lg" id="board-form-title">새 글 등록</p>
+              <input type="hidden" id="board-edit-id" />
+              <div class="mb-3">
+                <label class="block text-slate-700 text-sm mb-1">구분</label>
+                <select id="board-form-type" class="w-full px-3 py-2 border border-violet-200 rounded-xl"><option value="board">게시판</option><option value="resource">자료실</option></select>
+              </div>
+              <div class="mb-3">
+                <label class="block text-slate-700 text-sm mb-1">제목</label>
+                <input type="text" id="board-form-title-input" maxlength="200" class="w-full px-3 py-2 border border-violet-200 rounded-xl" placeholder="제목" />
+              </div>
+              <div class="mb-4">
+                <label class="block text-slate-700 text-sm mb-1">내용</label>
+                <textarea id="board-form-content" rows="5" maxlength="10000" class="w-full px-3 py-2 border border-violet-200 rounded-xl" placeholder="내용"></textarea>
+              </div>
+              <div class="flex gap-2">
+                <button type="button" id="board-form-save" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700">저장</button>
+                <button type="button" id="board-form-cancel" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100">취소</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lower Panel: 뇌파 데이터 및 결과 시각화 (관리자 메뉴에서만 사용, 일반 사용자 화면에서는 미노출) -->
+      <section id="lower-panel-eeg-viz" class="lower-panel-eeg bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 shadow-sm mt-6 hidden">
+        <h2 class="text-lg sm:text-xl font-bold text-slate-800 mb-4">뇌파 데이터 및 결과 시각화</h2>
+        <!-- 지표 산출식 (관리자만 표시) -->
+        <div class="mb-6 p-4 bg-violet-50 rounded-xl border border-violet-200" data-indicator-formula-admin-only>
+          <p class="text-violet-900 font-semibold mb-3 text-base">지표 산출식</p>
+          <ul class="text-slate-700 text-sm space-y-2 list-disc list-inside">
+            <li><strong>설문 1~5점 → 0~100 정규화:</strong> S_norm = (점수 − 1) ÷ 4 × 100</li>
+            <li><strong>영역별 통합 점수 (박사 논문 수식):</strong> 영역점수 = (S_norm × w_s) + (E × w_e). 단, S_norm=설문 정규화, E=뇌파 지표(0~100).</li>
+            <li><strong>창업공감·동기부여:</strong> w_s=0.7, w_e=0.3 → (S_norm×0.7)+(E×0.3)</li>
+            <li><strong>창업위기감수·극복:</strong> w_s=0.5, w_e=0.5 → (S_norm×0.5)+(E×0.5)</li>
+            <li><strong>창업두뇌활용·계발:</strong> w_s=0.6, w_e=0.4 → (S_norm×0.6)+(E×0.4)</li>
+            <li><strong>주체적·창업의식:</strong> w_s=0.8, w_e=0.2 → (S_norm×0.8)+(E×0.2)</li>
+            <li><strong>통합 지수 (0~100):</strong> 영역별 통합점수의 평균. 단, 뇌파 미사용 시 설문 정규화값만 사용.</li>
+            <li><strong>뇌파 단일 사용 시:</strong> combined = (survey_weight×S_norm + eeg_weight×eeg_score) ÷ (survey_weight + eeg_weight), 기본 0.6/0.4.</li>
+          </ul>
+          <p class="mt-3 text-slate-600 text-xs">4대 영역 (정식 명칭) 뇌파 지표 (0~100), 하위역량 12가지 점수 (파일 순서)</p>
+        </div>
+        <div class="grid gap-6 md:grid-cols-2">
+          <div>
+            <p class="text-slate-600 mb-2 text-sm font-medium">4대 영역 뇌파 지표 (0~100)</p>
+            <div id="lower-eeg" class="space-y-2 text-base"></div>
+          </div>
+          <div>
+            <p class="text-slate-600 mb-2 text-sm font-medium">하위역량 12가지</p>
+            <div class="h-64 sm:h-72 max-w-full"><canvas id="lower-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-200 text-center">
+          <button type="button" id="btn-goto-top" class="inline-block px-5 py-2.5 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base min-h-[44px]">↑ 위로 가기</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 저장 및 불러오기 모달 -->
+  <div id="modal-save-load" class="fixed inset-0 z-50 hidden bg-black/50" aria-modal="true">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-slate-200">
+          <h3 id="modal-save-load-title" class="text-xl font-bold text-slate-800">대화 저장 및 요약 불러오기</h3>
+          <p class="mt-2 text-amber-600 text-sm font-medium">※ 저장 기간 6개월 한정 (6개월 경과 시 자동 삭제)</p>
+        </div>
+        <div class="p-6 overflow-y-auto flex-1">
+          <div class="mb-4">
+            <label class="block text-slate-600 text-sm font-medium mb-1">요약 제목 (선택)</label>
+            <input type="text" id="save-summary-title" placeholder="예: 역량 보강 상담" maxlength="100" class="w-full px-4 py-2 border border-slate-300 rounded-xl text-base" />
+            <p class="text-slate-500 text-xs mt-1 mb-1">대화 내용 기반 추천:</p>
+            <div id="save-title-suggestions" class="flex flex-wrap gap-2"></div>
+          </div>
+          <button type="button" id="btn-save-current" class="w-full px-4 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-base font-medium mb-6">현재 대화 저장</button>
+          <p class="text-slate-600 text-sm mb-2">저장된 요약 목록 (6개월 이내) — 선택 후 불러오기</p>
+          <div id="saved-list" class="space-y-2 min-h-[80px] text-sm text-slate-600"></div>
+          <button type="button" id="btn-load-selected-saved" class="mt-3 w-full px-4 py-2 rounded-xl bg-violet-100 text-violet-800 hover:bg-violet-200 text-sm font-medium hidden">선택 항목 불러오기</button>
+        </div>
+        <div class="p-6 border-t border-slate-200">
+          <button type="button" id="modal-save-load-close" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-base">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 뇌파 저장 목록 모달 -->
+  <div id="modal-eeg-list" class="fixed inset-0 z-50 hidden bg-black/50" aria-modal="true">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-violet-100">
+        <div class="p-6 border-b border-violet-100">
+          <h3 id="modal-eeg-list-title" class="text-xl font-bold text-violet-900">저장된 뇌파 데이터 목록</h3>
+          <p class="mt-2 text-violet-600 text-sm">항목을 클릭하면 현재 화면에 적용됩니다.</p>
+        </div>
+        <div id="eeg-saved-list" class="p-4 overflow-y-auto flex-1 space-y-2 min-h-[120px] max-h-[65vh] text-sm text-slate-600"></div>
+        <div class="p-6 border-t border-slate-200">
+          <button type="button" id="modal-eeg-list-close" class="w-full px-4 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 설문 불러오기 모달 (시계열 이력 → Step 2·3·4 연동) -->
+  <div id="modal-survey-load" class="fixed inset-0 z-50 hidden bg-black/50" aria-modal="true">
+    <div class="flex min-h-full items-center justify-center p-4">
+      <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-violet-100">
+        <div class="p-6 border-b border-violet-100">
+          <h3 id="modal-survey-load-title" class="text-xl font-bold text-violet-900">설문 이력 불러오기</h3>
+          <p class="mt-2 text-violet-600 text-sm">선택 시 Step 2·3·4 결과까지 자동 연동됩니다. (6개월 이내)</p>
+          <div class="mt-3 flex gap-2">
+            <input type="text" id="survey-load-search" placeholder="[전체설문], [간편설문랜덤] 등 제목 검색" class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-sm" />
+            <button type="button" id="survey-load-search-btn" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm hover:bg-violet-700">검색</button>
+          </div>
+        </div>
+        <div id="survey-saved-list" class="p-4 overflow-y-auto flex-1 space-y-2 min-h-[120px] max-h-[65vh] text-sm text-slate-600"></div>
+        <div class="p-6 border-t border-slate-200">
+          <button type="button" id="modal-survey-load-close" class="w-full px-4 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base">닫기</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/sbi-lang.js"></script>
+  <script>
+    const API_BASE = '';
+    let items = [];
+    let requiredSequences = [];
+    const responses = {};
+    let surveyOrder = 'sequence';
+    let currentStep = 1;
+    let lastAnalysis = null;
+    let eegChart = null;
+    let lowerChart = null;
+
+    var stepTitlesByLang = {
+      ko: { 1: '설문 관련 입력 및 조회', 2: '결과 보기 및 PDF 보고서', 3: '뇌파 데이터 보기', 4: 'AI 상담 및 대화', 5: '게시판 및 자료실' },
+      en: { 1: 'Survey & Input', 2: 'Results & PDF Report', 3: 'EEG Data & Visualization', 4: 'AI Consultation', 5: 'Board & Resources' }
+    };
+    var stepLabelsByLang = {
+      ko: { 1: 'Step 1: 설문 진단', 2: 'Step 2: 결과 / PDF', 3: 'Step 3: 뇌파·시각화', 4: 'Step 4: AI 상담', 5: '게시판 및 자료실', '5short': '게시판' },
+      en: { 1: 'Step 1: Survey', 2: 'Step 2: Results / PDF', 3: 'Step 3: EEG & Viz', 4: 'Step 4: AI Chat', 5: 'Board & Resources', '5short': 'Board' }
+    };
+    var dashboardLang = {
+      ko: { menu: '메뉴', saveLoad: '저장·불러오기', back: '이전', home: '홈', logout: '로그아웃', done: '완료', langSwitch: 'EN', adminBadge: '관리자 모드', subtitle: 'SBI 창업가 뇌 지수 · 셀프 역량 리포트', gotoTop: '↑ 위로 가기', close: '닫기', modalSaveLoadTitle: '대화 저장 및 요약 불러오기', modalEegTitle: '저장된 뇌파 데이터 목록', modalSurveyLoadTitle: '설문 이력 불러오기', adminList1: '전체 설문 저장 목록 (관리자)', adminList2: '전체 결과/PDF 관련 설문 목록 (관리자)', adminList3: '전체 뇌파 저장 목록 (관리자)', adminList4: '전체 AI 상담 저장 목록 (관리자)' },
+      en: { menu: 'Menu', saveLoad: 'Save / Load', back: 'Back', home: 'Home', logout: 'Logout', done: 'Done', langSwitch: '한국어', adminBadge: 'Admin', subtitle: 'SBI Startup Brain Index · Self Competency Report', gotoTop: '↑ Top', close: 'Close', modalSaveLoadTitle: 'Save / Load Chat Summary', modalEegTitle: 'Saved EEG Data List', modalSurveyLoadTitle: 'Load Survey History', adminList1: 'Survey Saves (Admin)', adminList2: 'Results/PDF Survey List (Admin)', adminList3: 'EEG Saves (Admin)', adminList4: 'AI Chat Saves (Admin)' }
+    };
+    var stepTitles = stepTitlesByLang[(window.getSbiLang && window.getSbiLang()) || 'ko'];
+    function applyDashboardLang(lang) {
+      lang = lang || (window.getSbiLang && window.getSbiLang()) || 'ko';
+      stepTitles = stepTitlesByLang[lang];
+      document.documentElement.lang = lang === 'en' ? 'en' : 'ko';
+      var L = stepLabelsByLang[lang] || stepLabelsByLang.ko;
+      var D = dashboardLang[lang] || dashboardLang.ko;
+      for (var i = 1; i <= 5; i++) {
+        var el = document.getElementById('step-label-' + i);
+        if (el) el.textContent = L[i];
+      }
+      var el5s = document.getElementById('step-label-5-short');
+      if (el5s) el5s.textContent = L['5short'] || L[5];
+      var menuEl = document.getElementById('sidebar-menu-label');
+      if (menuEl) menuEl.textContent = D.menu;
+      var subEl = document.getElementById('dashboard-subtitle');
+      if (subEl) subEl.textContent = D.subtitle;
+      var saveEl = document.getElementById('btn-save');
+      if (saveEl) saveEl.textContent = D.saveLoad;
+      var backEl = document.getElementById('btn-back');
+      if (backEl) backEl.textContent = D.back;
+      var homeEl = document.getElementById('btn-home');
+      if (homeEl) homeEl.textContent = D.home;
+      var logoutEl = document.getElementById('logout-link');
+      if (logoutEl) logoutEl.textContent = D.logout;
+      var swEl = document.getElementById('dashboard-lang-switch');
+      if (swEl) swEl.textContent = D.langSwitch;
+      document.querySelectorAll('.badge-done').forEach(function(b) { b.textContent = D.done; });
+      var upper = document.getElementById('upper-title');
+      if (upper) upper.textContent = stepTitles[(typeof currentStep !== 'undefined' ? currentStep : 1)];
+      var ab = document.getElementById('admin-badge');
+      if (ab) ab.textContent = D.adminBadge;
+      var gt = document.getElementById('btn-goto-top');
+      if (gt) gt.textContent = D.gotoTop;
+      var ids = ['admin-detail-close', 'modal-save-load-close', 'modal-eeg-list-close', 'modal-survey-load-close'];
+      ids.forEach(function(id) { var e = document.getElementById(id); if (e) e.textContent = D.close; });
+      var m1 = document.getElementById('modal-save-load-title'); if (m1) m1.textContent = D.modalSaveLoadTitle;
+      var m2 = document.getElementById('modal-eeg-list-title'); if (m2) m2.textContent = D.modalEegTitle;
+      var m3 = document.getElementById('modal-survey-load-title'); if (m3) m3.textContent = D.modalSurveyLoadTitle;
+    }
+    if (window.getSbiLang) applyDashboardLang(window.getSbiLang());
+
+    // DOM 준비 후 네비·주요 버튼 클릭 위임. 스크립트 맨 끝에서 호출 (showStep/closeSidebar 정의 후).
+    function attachNavDelegation() {
+      document.addEventListener('click', function navDelegated(e) {
+        var back = e.target.closest('#btn-back');
+        if (back) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof currentStep !== 'undefined' && currentStep > 1 && typeof showStep === 'function') showStep(currentStep - 1);
+          return;
+        }
+        var stepLink = e.target.closest('a.step-link[data-step]');
+        if (stepLink) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof showStep === 'function') showStep(parseInt(stepLink.dataset.step, 10));
+          if (window.innerWidth < 1024 && typeof closeSidebar === 'function') closeSidebar();
+          return;
+        }
+        // 저장·불러오기: initDashboard 내 openSaveLoadModal과 연동
+        if (e.target.closest('#btn-save')) {
+          e.preventDefault();
+          if (typeof window._openSaveLoadModal === 'function') window._openSaveLoadModal();
+          return;
+        }
+        // 간편 설문
+        if (e.target.closest('#btn-short-survey')) {
+          e.preventDefault();
+          if (typeof window._runShortSurvey === 'function') window._runShortSurvey();
+          return;
+        }
+        // 다시하기 (역량별 랜덤)
+        if (e.target.closest('#btn-retry-random')) {
+          e.preventDefault();
+          if (typeof window._runRetryRandom === 'function') window._runRetryRandom();
+          return;
+        }
+        // 설문 불러오기
+        if (e.target.closest('#btn-survey-load')) {
+          e.preventDefault();
+          if (typeof window._openSurveyLoadModal === 'function') window._openSurveyLoadModal();
+          return;
+        }
+      }, true);
+    }
+
+    // 4대 영역 정식 명칭 순서 (표시·방사형·PDF와 동일)
+    const DOMAIN_ORDER = [
+      '창업공감 및 동기부여 역량',
+      '창업위기감수 및 극복 역량',
+      '창업두뇌활용 및 계발 역량',
+      '주체적책임 및 창업의식 역량'
+    ];
+    function orderDomainsByFormal(domains) {
+      const list = domains || [];
+      return DOMAIN_ORDER.map((formalName) => {
+        const d = list.find((d) => {
+          const n = (d.영역명 || d.영역 || '').trim();
+          return n === formalName || n.indexOf(formalName) >= 0 || formalName.indexOf(n) >= 0;
+        });
+        return d ? { name: formalName, d } : null;
+      }).filter(Boolean);
+    }
+    let resultRadarChart = null;
+    let aiConsultationNotes = [];
+    let surveyDirty = false;
+    /** 불러오기한 설문 id (목록 표시용). 새로 저장은 항상 새 행 추가. */
+    let loadedSurveyId = null;
+    /** 불러오기한 설문 제목. 새로 저장 시 제목에 [추가저장 N] 붙임 */
+    let loadedSurveyTitle = null;
+    /** 불러온 설문에서 추가 저장한 횟수 (수정 번호) */
+    let addedSaveCount = 0;
+    /** 설문 종류: 'full' = 전체설문, 'short_random' = 간편설문랜덤 (제목 머리말용) */
+    let surveyType = 'full';
+    /** 관리자 여부 (설문 불러오기 시 전체 목록 요청용) */
+    let currentUserIsAdmin = false;
+    let currentUserEmail = '';
+    /** 로그인 회원 프로필 (맞춤 질문 추천·AI 상담용) */
+    let currentUserProfile = null;
+
+    function byDomain(list) {
+      const map = {};
+      list.forEach((item) => {
+        const d = item.영역 || '기타';
+        if (!map[d]) map[d] = [];
+        map[d].push(item);
+      });
+      return map;
+    }
+
+    async function loadSurveyItems(order, short) {
+      const url = API_BASE + '/items?order=' + (order || 'sequence') + '&short=' + (short || 0);
+      const res = await fetch(url, { credentials: 'same-origin' });
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (e) {
+        throw new Error('문항 데이터를 읽을 수 없습니다.');
+      }
+      items = Array.isArray(data.items) ? data.items : [];
+      var seqList = data.required_sequences;
+      if (!Array.isArray(seqList) && items.length > 0) {
+        seqList = items.map(function(i) { return i.전체순번 != null ? i.전체순번 : i.sequence; }).filter(function(x) { return x != null; });
+      }
+      requiredSequences = Array.isArray(seqList) ? seqList : [];
+      surveyOrder = order || 'sequence';
+      if (!res.ok && items.length === 0) throw new Error('문항 조회 실패: ' + res.status);
+      return { items: items, requiredSequences: requiredSequences };
+    }
+
+    /** 관리자 목록 모드: 'survey_saves' | 'eeg_saves' | 'chat_saves' */
+    let adminListMode = '';
+    let adminDetailId = null;
+    let adminDetailType = '';
+
+    function showStep(step) {
+      if (step === 3) { showStep(4); return; }
+      currentStep = step;
+      document.querySelectorAll('.step-link').forEach((a) => {
+        a.classList.remove('bg-accent-100');
+        if (parseInt(a.dataset.step, 10) === step) a.classList.add('bg-accent-100');
+      });
+      const adminPanel = document.getElementById('admin-list-panel');
+      const isAdminStep = currentUserIsAdmin && (step >= 1 && step <= 4);
+      if (adminPanel) adminPanel.classList.toggle('hidden', !isAdminStep);
+      document.querySelectorAll('.panel-step').forEach((el, i) => {
+        el.classList.toggle('hidden', isAdminStep || (i + 1 !== step));
+      });
+      var upperTitle = document.getElementById('upper-title');
+      if (upperTitle) upperTitle.textContent = stepTitles[step];
+      var btnBack = document.getElementById('btn-back');
+      if (btnBack) btnBack.style.visibility = step > 1 ? 'visible' : 'hidden';
+      if (isAdminStep) {
+        adminListMode = step === 1 || step === 2 ? 'survey_saves' : step === 3 ? 'eeg_saves' : 'chat_saves';
+        var D = dashboardLang[(window.getSbiLang && window.getSbiLang()) || 'ko'] || dashboardLang.ko;
+        var adminListTitle = document.getElementById('admin-list-title');
+        if (adminListTitle) adminListTitle.textContent = step === 1 ? D.adminList1 : step === 2 ? D.adminList2 : step === 3 ? D.adminList3 : D.adminList4;
+        loadAdminList();
+      }
+      if (step === 3) {
+        renderEegPanel();
+        const eeg = getCurrentEeg();
+        if (eeg) {
+          document.getElementById('eeg-input-motivation').value = eeg.motivation ?? '';
+          document.getElementById('eeg-input-resilience').value = eeg.resilience ?? '';
+          document.getElementById('eeg-input-innovation').value = eeg.innovation ?? '';
+          document.getElementById('eeg-input-responsibility').value = eeg.responsibility ?? '';
+          if (eeg.alpha != null) document.getElementById('eeg-input-alpha').value = eeg.alpha;
+          if (eeg.beta != null) document.getElementById('eeg-input-beta').value = eeg.beta;
+          if (eeg.theta != null) document.getElementById('eeg-input-theta').value = eeg.theta;
+          if (eeg.delta != null) document.getElementById('eeg-input-delta').value = eeg.delta;
+          if (eeg.engagement != null) document.getElementById('eeg-input-engagement').value = eeg.engagement;
+          if (eeg.focus != null) document.getElementById('eeg-input-focus').value = eeg.focus;
+        }
+      }
+      if (step === 4) {
+        ensureChatWelcome();
+        renderChatVisualizations();
+      }
+      if (step === 5) {
+        loadBoardList();
+        var lower = document.getElementById('lower-panel-eeg-viz');
+        if (lower) lower.classList.add('hidden');
+      } else {
+        var lower = document.getElementById('lower-panel-eeg-viz');
+        if (lower) lower.classList.add('hidden');
+      }
+    }
+
+    async function loadAdminList() {
+      const body = document.getElementById('admin-list-body');
+      if (!body) return;
+      body.innerHTML = '<p class="text-slate-400">불러오는 중…</p>';
+      try {
+        if (adminListMode === 'survey_saves') {
+          const res = await fetch(API_BASE + '/api/survey-saved-list?all_users=1', { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+          const items = data.items || [];
+          if (items.length === 0) {
+            var msg = (data.message || '').trim();
+            body.innerHTML = msg ? '<p class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-sm border border-amber-200">' + escapeHtml(msg) + '</p>' : '<p class="text-slate-400">저장된 설문이 없습니다.</p>';
+            return;
+          }
+          body.innerHTML = items.map((it) => {
+            const title = escapeHtml((it.title || '').trim() || ('저장 ' + (it.created_at || '').slice(0, 16)));
+            const email = escapeHtml(it.user_email || '');
+            const date = (it.created_at || '').replace('T', ' ').slice(0, 16);
+            return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100 hover:bg-violet-100/80"><div class="min-w-0 flex-1"><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="font-medium text-violet-800 block truncate">' + title + '</span></button><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="text-violet-500 text-xs">ID ' + it.id + ' · ' + email + ' · ' + date + '</span></button></div><span class="flex gap-1 shrink-0"><button type="button" class="admin-view px-2 py-1 rounded bg-violet-200 text-violet-800 text-xs" data-id="' + it.id + '">보기</button><button type="button" class="admin-edit px-2 py-1 rounded bg-slate-200 text-slate-700 text-xs" data-id="' + it.id + '" data-title="' + (it.title || '').replace(/"/g, '&quot;') + '">수정</button><button type="button" class="admin-del px-2 py-1 rounded bg-red-100 text-red-600 text-xs" data-id="' + it.id + '">삭제</button></span></div>';
+          }).join('');
+        } else if (adminListMode === 'eeg_saves') {
+          const res = await fetch(API_BASE + '/api/eeg-saved-list?all_users=1', { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+          const items = data.items || [];
+          if (items.length === 0) {
+            var msg = (data.message || '').trim();
+            body.innerHTML = msg ? '<p class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-sm border border-amber-200">' + escapeHtml(msg) + '</p>' : '<p class="text-slate-400">저장된 뇌파가 없습니다.</p>';
+            return;
+          }
+          body.innerHTML = items.map((it) => {
+            const title = escapeHtml((it.title || '').trim() || ('뇌파 ' + (it.saved_at || '').slice(0, 16)));
+            const email = escapeHtml(it.user_email || '');
+            const date = (it.saved_at || '').replace('T', ' ').slice(0, 16);
+            return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100 hover:bg-violet-100/80"><div class="min-w-0 flex-1"><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="font-medium text-violet-800 block truncate">' + title + '</span></button><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="text-violet-500 text-xs">ID ' + it.id + ' · ' + email + ' · ' + date + '</span></button></div><span class="flex gap-1 shrink-0"><button type="button" class="admin-view px-2 py-1 rounded bg-violet-200 text-violet-800 text-xs" data-id="' + it.id + '">보기</button><button type="button" class="admin-edit px-2 py-1 rounded bg-slate-200 text-slate-700 text-xs" data-id="' + it.id + '" data-title="' + (it.title || '').replace(/"/g, '&quot;') + '">수정</button><button type="button" class="admin-del px-2 py-1 rounded bg-red-100 text-red-600 text-xs" data-id="' + it.id + '">삭제</button></span></div>';
+          }).join('');
+        } else if (adminListMode === 'chat_saves') {
+          const res = await fetch(API_BASE + '/api/chat-saved-list?all_users=1', { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+          const items = data.items || [];
+          if (items.length === 0) {
+            var msg = (data.message || '').trim();
+            body.innerHTML = msg ? '<p class="px-3 py-2 rounded-lg bg-amber-50 text-amber-800 text-sm border border-amber-200">' + escapeHtml(msg) + '</p>' : '<p class="text-slate-400">저장된 대화가 없습니다.</p>';
+            return;
+          }
+          body.innerHTML = items.map((it) => {
+            const title = escapeHtml((it.summary_title || '').trim() || '제목 없음');
+            const email = escapeHtml(it.user_email || '');
+            const date = (it.saved_at || '').replace('T', ' ').slice(0, 16);
+            return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100 hover:bg-violet-100/80"><div class="min-w-0 flex-1"><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="font-medium text-violet-800 block truncate">' + title + '</span></button><button type="button" class="admin-open-detail text-left w-full min-h-[44px]"><span class="text-violet-500 text-xs">ID ' + it.id + ' · ' + email + ' · ' + date + '</span></button></div><span class="flex gap-1 shrink-0"><button type="button" class="admin-view px-2 py-1 rounded bg-violet-200 text-violet-800 text-xs" data-id="' + it.id + '">보기</button><button type="button" class="admin-edit px-2 py-1 rounded bg-slate-200 text-slate-700 text-xs" data-id="' + it.id + '" data-title="' + (it.summary_title || '').replace(/"/g, '&quot;') + '">수정</button><button type="button" class="admin-del px-2 py-1 rounded bg-red-100 text-red-600 text-xs" data-id="' + it.id + '">삭제</button></span></div>';
+          }).join('');
+        }
+        body.querySelectorAll('.admin-open-detail').forEach((btn) => {
+          var card = btn.closest('div.flex.items-center.justify-between');
+          if (!card) return;
+          var viewBtn = card.querySelector('.admin-view');
+          if (!viewBtn) return;
+          btn.setAttribute('data-id', viewBtn.dataset.id || '');
+          btn.addEventListener('click', () => openAdminDetail(parseInt(viewBtn.dataset.id, 10), 'view'));
+        });
+        body.querySelectorAll('.admin-view').forEach((btn) => btn.addEventListener('click', () => openAdminDetail(parseInt(btn.dataset.id, 10), 'view')));
+        body.querySelectorAll('.admin-edit').forEach((btn) => btn.addEventListener('click', () => openAdminDetail(parseInt(btn.dataset.id, 10), 'edit', btn.dataset.title || '')));
+        body.querySelectorAll('.admin-del').forEach((btn) => btn.addEventListener('click', () => confirmAdminDelete(parseInt(btn.dataset.id, 10))));
+      } catch (e) {
+        body.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
+      }
+    }
+    function openAdminDetail(id, mode, currentTitle) {
+      adminDetailId = id;
+      adminDetailType = adminListMode;
+      const modal = document.getElementById('admin-detail-modal');
+      const contentEl = document.getElementById('admin-detail-content');
+      const titleInput = document.getElementById('admin-edit-title-input');
+      const editSaveBtn = document.getElementById('admin-edit-save');
+      const deleteBtn = document.getElementById('admin-delete-btn');
+      document.getElementById('admin-detail-title').textContent = mode === 'view' ? '내용 보기' : '제목 수정';
+      titleInput.classList.add('hidden');
+      editSaveBtn.classList.add('hidden');
+      deleteBtn.classList.remove('hidden');
+      contentEl.innerHTML = '<p class="text-slate-400">불러오는 중…</p>';
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      (async () => {
+        try {
+          let url = '';
+          if (adminDetailType === 'survey_saves') url = API_BASE + '/api/survey-saved/' + id;
+          else if (adminDetailType === 'eeg_saves') url = API_BASE + '/api/eeg-saved/' + id;
+          else if (adminDetailType === 'chat_saves') url = API_BASE + '/api/chat-saved/' + id;
+          const res = await fetch(url, { credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '조회 실패');
+          if (adminDetailType === 'survey_saves') {
+            var responses = data.responses || {};
+            var seqs = Object.keys(responses).map(Number).sort(function(a, b) { return a - b; });
+            var html = '<p class="text-slate-600">제목: ' + escapeHtml(data.title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p>';
+            if (seqs.length > 0) {
+              html += '<p class="mt-3 font-medium text-slate-700">응답 전체 내용</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg mt-1"><table class="w-full text-sm"><thead><tr class="bg-violet-50"><th class="p-2 text-left">문항</th><th class="p-2 text-left">점수</th></tr></thead><tbody>';
+              seqs.forEach(function(seq) { html += '<tr class="border-t border-violet-100"><td class="p-2">' + seq + '번</td><td class="p-2">' + responses[seq] + '점</td></tr>'; });
+              html += '</tbody></table></div>';
+            } else {
+              html += '<p class="mt-2 text-slate-500">저장된 응답이 없습니다.</p>';
+            }
+            contentEl.innerHTML = html;
+            if (mode === 'edit') { titleInput.value = data.title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
+          } else if (adminDetailType === 'eeg_saves') {
+            contentEl.innerHTML = '<p class="text-slate-600">제목: ' + escapeHtml(data.title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p><pre class="mt-2 text-xs overflow-x-auto">' + escapeHtml(JSON.stringify(data.data || {}, null, 2)) + '</pre>';
+            if (mode === 'edit') { titleInput.value = data.title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
+          } else if (adminDetailType === 'chat_saves') {
+            var messages = data.messages || [];
+            var convo = messages.map(function(m) {
+              var role = (m.role === 'user') ? '나' : 'AI';
+              return role + ': ' + (m.text || '');
+            }).join('\n\n');
+            contentEl.innerHTML = '<p class="text-slate-600">제목: ' + escapeHtml(data.summary_title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p><p class="mt-3 font-medium text-slate-700">대화 전체 내용</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg p-2 bg-slate-50 whitespace-pre-wrap">' + escapeHtml(convo || '저장된 대화가 없습니다.') + '</div>';
+            if (mode === 'edit') { titleInput.value = data.summary_title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
+          }
+        } catch (e) {
+          contentEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '') + '</p>';
+        }
+      })();
+    }
+    function closeAdminDetailModal() {
+      document.getElementById('admin-detail-modal').classList.add('hidden');
+      document.getElementById('admin-detail-modal').classList.remove('flex');
+      adminDetailId = null;
+    }
+    async function saveAdminEdit() {
+      if (adminDetailId == null || !adminDetailType) return;
+      const titleInput = document.getElementById('admin-edit-title-input');
+      const newTitle = (titleInput && titleInput.value || '').trim();
+      if (!newTitle) { alert('제목을 입력하세요.'); return; }
+      try {
+        let url = API_BASE + '/api/admin/tables/' + adminDetailType + '/' + adminDetailId;
+        let body = {};
+        if (adminDetailType === 'survey_saves') body = { title: newTitle };
+        else if (adminDetailType === 'eeg_saves') body = { title: newTitle };
+        else if (adminDetailType === 'chat_saves') body = { summary_title: newTitle };
+        const res = await fetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify(body) });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '수정 실패');
+        alert('수정이 완료되었습니다.');
+        closeAdminDetailModal();
+        loadAdminList();
+      } catch (e) {
+        alert('수정 실패: ' + (e.message || e));
+      }
+    }
+    function confirmAdminDelete(id) {
+      if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+      (async () => {
+        try {
+          const res = await fetch(API_BASE + '/api/admin/tables/' + adminListMode + '/' + id, { method: 'DELETE', credentials: 'same-origin' });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.detail || '삭제 실패');
+          alert('삭제가 완료되었습니다.');
+          closeAdminDetailModal();
+          loadAdminList();
+        } catch (e) {
+          alert('삭제 실패: ' + (e.message || e));
+        }
+      })();
+    }
+
+    let currentMissingList = [];
+
+    function updateProgress() {
+      const n = requiredSequences.filter((seq) => responses[seq] != null).length;
+      const total = requiredSequences.length;
+      const pct = total ? Math.round((n / total) * 100) : 0;
+      var progressText = document.getElementById('progress-text');
+      if (progressText) progressText.textContent = n + ' / ' + total;
+      var progressFill = document.getElementById('progress-fill');
+      if (progressFill) progressFill.style.width = pct + '%';
+      const btn = document.getElementById('submit-survey-btn');
+      const missing = requiredSequences.filter((seq) => responses[seq] == null);
+      currentMissingList = missing.slice().sort((a, b) => a - b);
+      const unansweredRow = document.getElementById('unanswered-row');
+      const listBox = document.getElementById('unanswered-list-box');
+      if (missing.length > 0) {
+        if (unansweredRow) unansweredRow.classList.remove('hidden');
+        var unansweredCount = document.getElementById('unanswered-count');
+        if (unansweredCount) unansweredCount.textContent = missing.length;
+        if (listBox && !listBox.classList.contains('hidden')) renderUnansweredListBox();
+      } else {
+        if (unansweredRow) unansweredRow.classList.add('hidden');
+        if (listBox) listBox.classList.add('hidden');
+      }
+      if (btn) {
+        // UX: 전부 응답이 아니어도 '미응답 제외'로 결과 제출 가능 (원래처럼 빠른 결과 확인)
+        const canSubmit = total > 0 && n > 0;
+        btn.disabled = !canSubmit;
+        btn.classList.toggle('bg-slate-300', !canSubmit);
+        btn.classList.toggle('text-slate-500', !canSubmit);
+        btn.classList.toggle('cursor-not-allowed', !canSubmit);
+        btn.classList.toggle('bg-primary-600', canSubmit);
+        btn.classList.toggle('text-white', canSubmit);
+        btn.classList.toggle('hover:bg-primary-700', canSubmit);
+        btn.classList.toggle('cursor-pointer', canSubmit);
+        if (!canSubmit) {
+          btn.textContent = total > 0 ? '제출 결과 보기 (응답 후 활성화)' : '제출 결과 보기 (문항 불러오는 중…)';
+          btn.title = total > 0 ? '문항에 먼저 응답해 주세요.' : '문항을 불러오는 중입니다.';
+        } else if (missing.length > 0) {
+          btn.textContent = '제출 결과 보기 (미응답 ' + missing.length + '건 제외)';
+          btn.title = '미응답 문항은 제외하고 점수를 계산합니다.';
+        } else {
+          btn.textContent = '제출 결과 보기';
+          btn.title = '';
+        }
+      }
+    }
+
+    function computeExcludedSequences() {
+      const excluded = [];
+      for (let s = 1; s <= 96; s++) {
+        // 현재 설문 세트에 포함되지 않은 문항은 제외
+        if (!requiredSequences.includes(s)) { excluded.push(s); continue; }
+        // 포함된 문항이지만 미응답이면 제외(부분 제출 허용)
+        if (responses[s] == null) excluded.push(s);
+      }
+      return excluded;
+    }
+
+    /** 미응답 문항 번호(seq)로 스크롤 이동 후 강조 */
+    function scrollToQuestion(seq) {
+      const wrap = document.getElementById('q-wrap-' + seq);
+      if (!wrap) return;
+      clearUnansweredHint();
+      document.querySelectorAll('.q-wrap').forEach((el) => el.classList.remove('ring-2', 'ring-red-400'));
+      wrap.classList.add('ring-2', 'ring-red-400');
+      wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /** 다음 미응답 문항으로 자동 이동 (응답 선택 후 호출) */
+    function goToNextUnanswered() {
+      updateProgress();
+      if (currentMissingList.length > 0) {
+        scrollToQuestion(currentMissingList[0]);
+      }
+    }
+
+    /** 미응답 목록 박스 내용을 '바로가기' 버튼으로 렌더 */
+    function renderUnansweredListBox() {
+      const listBox = document.getElementById('unanswered-list-box');
+      if (!listBox) return;
+      if (!currentMissingList.length) {
+        listBox.innerHTML = '';
+        return;
+      }
+      listBox.innerHTML = '<p class="mb-2 text-slate-600 text-sm">클릭하면 해당 문항으로 이동합니다.</p><div class="flex flex-wrap gap-2">' +
+        currentMissingList.map((seq) => '<button type="button" class="unanswered-goto px-3 py-1.5 rounded-lg bg-violet-100 hover:bg-violet-200 text-violet-800 text-sm font-medium" data-seq="' + seq + '">' + seq + '번 바로가기</button>').join('') +
+        '</div>';
+      listBox.querySelectorAll('.unanswered-goto').forEach((btn) => {
+        btn.addEventListener('click', () => scrollToQuestion(parseInt(btn.dataset.seq, 10)));
+      });
+    }
+
+    function toggleUnansweredList() {
+      const listBox = document.getElementById('unanswered-list-box');
+      if (!listBox) return;
+      if (listBox.classList.contains('hidden')) {
+        listBox.classList.remove('hidden');
+        renderUnansweredListBox();
+      } else {
+        listBox.classList.add('hidden');
+      }
+    }
+
+    /** 새로 입력/불러오기/새로 저장/제출 시 미응답 창을 보여 나머지 응답을 확인할 수 있게 함 */
+    function ensureUnansweredVisible() {
+      updateProgress();
+      const missing = requiredSequences.filter((seq) => responses[seq] == null);
+      if (missing.length === 0) return;
+      const unansweredRow = document.getElementById('unanswered-row');
+      const listBox = document.getElementById('unanswered-list-box');
+      if (unansweredRow) unansweredRow.classList.remove('hidden');
+      if (listBox) { listBox.classList.remove('hidden'); renderUnansweredListBox(); }
+      if (unansweredRow) unansweredRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    function clearUnansweredHint() {
+      var hint = document.getElementById('unanswered-hint');
+      if (hint) hint.classList.add('hidden');
+      document.querySelectorAll('.q-wrap').forEach((el) => el.classList.remove('ring-2', 'ring-red-400'));
+    }
+
+    function renderQuestions() {
+      const container = document.getElementById('questions-container');
+      if (!container) return;
+      container.innerHTML = '';
+      clearUnansweredHint();
+      var list = Array.isArray(items) ? items : [];
+      if (list.length === 0) {
+        container.innerHTML = '<p class="text-slate-600 py-6 text-center">설문 문항이 없습니다. <strong class="text-violet-600">「간편 설문」</strong> 또는 <strong class="text-violet-600">「다시하기」</strong> 버튼을 눌러 문항을 불러오세요.</p>';
+        updateProgress();
+        return;
+      }
+      const useDomainHeaders = surveyOrder === 'random_domain';
+      let lastDomain = '';
+      list.forEach((item) => {
+        const seq = item.전체순번 != null ? item.전체순번 : item.sequence;
+        if (seq == null) return;
+        const text = (item.문항보정 != null ? item.문항보정 : item.text) || '';
+        const domain = (item.영역 != null ? item.영역 : item.domain) || '';
+        if (useDomainHeaders && domain !== lastDomain) {
+          lastDomain = domain;
+          const h3 = document.createElement('h3');
+          h3.className = 'text-lg font-semibold text-slate-700 mt-6 mb-3 pb-2 border-b border-slate-200';
+          h3.textContent = domain;
+          container.appendChild(h3);
+        }
+        const div = document.createElement('div');
+        div.id = 'q-wrap-' + seq;
+        div.className = 'q-wrap bg-white rounded-xl p-4 border border-slate-100';
+        div.dataset.seq = String(seq);
+        var safeText = (typeof escapeHtml === 'function' ? escapeHtml(String(text)) : String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'));
+        div.innerHTML = '<p class="text-slate-700 mb-3 font-medium text-lg"><span class="text-primary-600 font-bold">' + seq + '.</span> ' + safeText + '</p><div class="flex flex-wrap gap-4" role="radiogroup">' +
+          [1,2,3,4,5].map(function(s) { return '<label class="flex items-center gap-2 cursor-pointer text-lg"><input type="radio" name="q' + seq + '" value="' + s + '" class="w-5 h-5" data-seq="' + seq + '"/><span>' + s + '점</span></label>'; }).join('') +
+          '</div>';
+        container.appendChild(div);
+        div.querySelectorAll('input[type="radio"]').forEach((r) => {
+          r.addEventListener('change', () => {
+            responses[seq] = parseInt(r.value, 10);
+            surveyDirty = true;
+            var saveNewBtn = document.getElementById('btn-survey-save-new');
+            if (saveNewBtn) saveNewBtn.classList.remove('hidden');
+            clearUnansweredHint();
+            updateProgress();
+            setTimeout(() => goToNextUnanswered(), 350);
+          });
+        });
+      });
+      const desc = document.getElementById('survey-desc');
+      if (desc) desc.textContent = requiredSequences.length + '문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)';
+      updateProgress();
+    }
+
+    function renderResult(data) {
+      lastAnalysis = data;
+      const summary = document.getElementById('result-summary');
+      const cards = document.getElementById('result-cards');
+      const combined = data.통합지수_0_100 ?? (data.전체평균 != null ? (data.전체평균 - 1) / 4 * 100 : null);
+      summary.innerHTML = `<p class="text-lg">통합 지수: <strong class="text-primary-600 text-2xl">${combined != null ? Math.round(combined) : '—'}</strong> / 100</p><p class="text-slate-600 text-lg mt-2">${data.message || ''}</p>`;
+      cards.innerHTML = '';
+      const ordered = orderDomainsByFormal(data.영역별_통합점수 || data.영역별점수 || []);
+      ordered.forEach(({ name, d }) => {
+        const score = d.combined_score != null ? d.combined_score : (d.평균점수 != null ? (d.평균점수 - 1) / 4 * 100 : 0);
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-xl p-5 border border-slate-100';
+        card.innerHTML = `
+          <p class="text-lg font-medium text-slate-700 mb-2">${name}</p>
+          <div class="h-3 bg-slate-100 rounded-full overflow-hidden"><div class="domain-bar h-full rounded-full bg-primary-500" style="width: ${Math.min(100, Math.max(0, score))}%"></div></div>
+          <p class="text-right text-lg font-bold text-slate-700 mt-2">${typeof score === 'number' ? score.toFixed(1) : score}점</p>
+        `;
+        cards.appendChild(card);
+      });
+      // 방사형 도표
+      const radarWrap = document.getElementById('result-radar-wrap');
+      const radarCanvas = document.getElementById('result-radar-chart');
+      if (radarWrap && radarCanvas && ordered.length > 0) {
+        radarWrap.classList.remove('hidden');
+        if (resultRadarChart) resultRadarChart.destroy();
+        const labels = ordered.map((x) => x.name.length > 12 ? x.name.slice(0, 10) + '…' : x.name);
+        const values = ordered.map((x) => x.d.combined_score != null ? x.d.combined_score : 0);
+        resultRadarChart = new Chart(radarCanvas.getContext('2d'), {
+          type: 'radar',
+          data: {
+            labels: labels,
+            datasets: [{ label: '역량 점수', data: values, backgroundColor: 'rgba(59, 130, 246, 0.2)', borderColor: '#2563eb', pointBackgroundColor: '#2563eb' }]
+          },
+          options: { scales: { r: { beginAtZero: true, max: 100 } }, responsive: true, maintainAspectRatio: false }
+        });
+      }
+      // AI 해석 — 공감·동기부여·긍정·창의·혁신·개방·공생·공존, 자신을 깨우는 초시적 시도 (3배 이상 분량)
+      const report = data.리포트 || {};
+      const aiSummary = document.getElementById('result-ai-summary');
+      const aiDomains = document.getElementById('result-ai-domains');
+      const aiExtended = document.getElementById('result-ai-extended');
+      const aiBlock = document.getElementById('result-ai-interpret');
+      if (aiBlock) {
+        aiBlock.classList.remove('hidden');
+        const baseSummary = report.요약 || '4대 역량별 통합 지수를 뇌교육·BOS 관점에서 해석했습니다.';
+        if (aiSummary) {
+          aiSummary.innerHTML = '<p class="mb-2">' + escapeHtml(baseSummary) + '</p>' +
+            '<p class="mb-2">이 결과는 <strong>공감과 동기부여</strong>의 기반 위에, 창업생태계와 구성원에 대한 이해를 넓히고, 긍정적 동기를 지속할 수 있음을 보여줍니다. 당신의 선택과 노력이 이미 점수에 반영되어 있습니다.</p>' +
+            '<p>해석은 <strong>창의·혁신·개방</strong>의 관점에서, 두뇌활용과 신경가소성을 통해 새로운 학습과 경험이 축적되고 있음을, <strong>공생·공존</strong>의 관점에서 지역사회와 글로벌 공동체를 위한 주체적 책임이 어떻게 나타나는지를 함께 살펴봅니다.</p>';
+        }
+        if (aiDomains) {
+          aiDomains.innerHTML = (report.역량별 || []).slice(0, 4).map((s) => {
+            const name = s.영역명 || '';
+            const 해석 = s.해석 || '';
+            return '<div class="py-2"><strong>' + escapeHtml(name) + '</strong><p class="mt-1">' + escapeHtml(해석) + '</p><p class="mt-1 text-slate-500 text-sm">위 역량은 하위요소(공감·동기, 위기극복·회복, 창의·몰입·혁신, 협업·책임·공동체)와 연결됩니다. 작은 실천이 통합 지수 향상으로 이어질 수 있습니다.</p></div>';
+          }).join('');
+        }
+        if (aiExtended) {
+          aiExtended.innerHTML =
+            '<p><strong>【공감·동기부여】</strong> 창업공감 및 동기부여 역량은 생태계 이해, 구성원 공감, 비전 공유와 직결됩니다. 긍정적 정보 선택(BOS: 굿뉴스)과 현재에 깨어 있기(정신차려라)가 일상에서 이 영역을 강화합니다.</p>' +
+            '<p><strong>【창의·혁신·개방】</strong> 창업두뇌활용 및 계발 역량은 긍정 두뇌활용, 창의 두뇌계발, 두뇌혁신(융합·개방성)을 포함합니다. 뇌 유연화·정화·통합 단계와 BOS 「선택하면 이루어진다」「모든 환경을 디자인하라」 실천이 도움이 됩니다.</p>' +
+            '<p><strong>【공생·공존】</strong> 주체적책임 및 창업의식 역량은 협업, 사회적 책임(CSR/ESG), 지구적 창업의식과 연결됩니다. 시간과 공간의 주인이 되고, 환경을 디자인하는 마음가짐이 공동체와의 공존을 넓힙니다.</p>' +
+            '<p><strong>【자신을 깨우는 초시적 시도】</strong> 위 해석은 당신이 이미 가진 강점과 보강할 수 있는 영역을 「의식」의 관점에서 정리한 것입니다. 매일 조금씩 뇌교육 5단계와 BOS 5법칙을 떠올리며 실천하는 것이, 지수 수치 이상으로 「스스로를 깨우는」 첫걸음이 됩니다.</p>';
+        }
+      }
+      // 뇌파 데이터 및 시각화 상세 설명 (설문 역량 지수와 연계)
+      const eegDescWrap = document.getElementById('result-eeg-visual-desc');
+      const eegDescContent = document.getElementById('result-eeg-desc-content');
+      const eegData = data.eeg_영역별 || {};
+      if (eegDescWrap && eegDescContent) {
+        eegDescWrap.classList.remove('hidden');
+        const eegNames = { motivation: '창업공감·동기부여', resilience: '위기감수·극복', innovation: '두뇌활용·계발', responsibility: '주체적·창업의식' };
+        let descHtml = '<p><strong>1. 실제 뇌파 그래프와 주요 지표</strong></p><p>본 결과에 반영된 뇌파 지표는 4대 영역(전두엽 비대칭, 알파파 회복, SMR/Beta 코히어런스, 전전두엽 안정도)에 대응합니다. 막대 그래프와 파동 그래프는 각 영역별 상대적 활성도(0~100)를 나타내며, 설문(의식적 자기보고)과 결합해 통합 지수가 산출됩니다.</p>';
+        descHtml += '<p><strong>2. 역량별 뇌파 지표와 설문 역량 지수의 관계</strong></p><p>';
+        ['motivation', 'resilience', 'innovation', 'responsibility'].forEach((k) => {
+          const v = eegData[k];
+          const name = eegNames[k] || k;
+          descHtml += (name + ': 뇌파 지표 ' + (v != null ? v + '점' : '—') + '. 설문 역량과 일치하면 일관된 프로필로, 차이가 있으면 「정보 정화」 또는 「뇌 통합」 관점에서 보완 실천을 권장합니다. ');
+        });
+        descHtml += '</p><p><strong>3. 시각화 도표 해석</strong></p><p>방사형 도표는 4대 역량의 균형을, 하위역량 막대 차트는 12가지 하위역량 점수를 보여줍니다. 뇌파 파동 그래프는 영역별 상대 강도를 시간·구간에 따라 시뮬레이션한 것으로, 실제 측정 장비 데이터를 불러오면 Step 3에서 동일 형식으로 비교할 수 있습니다.</p>';
+        eegDescContent.innerHTML = descHtml;
+      }
+      document.getElementById('btn-download-pdf').classList.remove('hidden');
+      document.getElementById('link-pdf').classList.add('hidden');
+      document.getElementById('badge-step1').classList.remove('hidden');
+      document.getElementById('badge-step2').classList.remove('hidden');
+      renderEegPanel();
+      renderLowerCharts(data);
+    }
+
+    var DOMAIN_FORMAL_NAMES = {
+      motivation: '창업공감 및 동기부여 역량',
+      resilience: '창업위기감수 및 극복 역량',
+      innovation: '창업두뇌활용 및 계발 역량',
+      responsibility: '주체적책임 및 창업의식 역량'
+    };
+    var EEG_KEYS_ORDER = ['motivation', 'resilience', 'innovation', 'responsibility'];
+    let eegWaveChart = null;
+    /** Step 3: 불러오기/직접 입력한 뇌파 데이터 (있으면 설문 결과 대신 사용) */
+    let eegOverride = null;
+
+    function getCurrentEeg() {
+      if (eegOverride && typeof eegOverride === 'object') return eegOverride;
+      return lastAnalysis && lastAnalysis.eeg_영역별 ? lastAnalysis.eeg_영역별 : null;
+    }
+
+    function buildEegAiReport(eeg) {
+      const vals = EEG_KEYS_ORDER.map((k) => ({ key: k, name: DOMAIN_FORMAL_NAMES[k], v: eeg[k] }));
+      const low = vals.filter((x) => x.v != null && x.v < 50);
+      const high = vals.filter((x) => x.v != null && x.v >= 70);
+      const mid = vals.filter((x) => x.v != null && x.v >= 50 && x.v < 70);
+      let html = '';
+      html += '<p><strong>【요약】</strong> 4대 영역 뇌파 지표(전두엽 비대칭, 알파파 회복, SMR/Beta 코히어런스, 전전두엽 안정도)가 반영되었습니다.</p>';
+      if (eeg.alpha != null || eeg.beta != null || eeg.theta != null || eeg.delta != null || eeg.engagement != null || eeg.focus != null) {
+        const parts = [];
+        if (eeg.alpha != null) parts.push('Alpha ' + eeg.alpha);
+        if (eeg.beta != null) parts.push('Beta ' + eeg.beta);
+        if (eeg.theta != null) parts.push('Theta ' + eeg.theta);
+        if (eeg.delta != null) parts.push('Delta ' + eeg.delta);
+        if (eeg.engagement != null) parts.push('참여도 ' + eeg.engagement + '%');
+        if (eeg.focus != null) parts.push('집중도 ' + eeg.focus + '%');
+        html += '<p><strong>실제 뇌파 지표:</strong> ' + parts.join(', ') + ' — 위 지표는 설문 역량과 함께 해석 시 참고됩니다.</p>';
+      }
+      if (high.length) html += '<p><strong>강점 영역:</strong> ' + high.map((x) => x.name + ' ' + x.v + '점').join(', ') + ' — 해당 역량을 활용한 리더십 강화를 권장합니다.</p>';
+      if (mid.length) html += '<p><strong>유지·보강 영역:</strong> ' + mid.map((x) => x.name + ' ' + x.v + '점').join(', ') + ' — 꾸준한 뇌교육·BOS 실천으로 수치 유지 및 향상을 도모할 수 있습니다.</p>';
+      if (low.length) html += '<p><strong>보강 권장 영역:</strong> ' + low.map((x) => x.name + ' ' + x.v + '점').join(', ') + ' — 뇌교육 5단계(감각·유연화·정화·통합·주인되기)와 BOS 5법칙 실천을 통해 역량을 강화할 수 있습니다.</p>';
+      html += '<p><strong>【종합】</strong> 뇌파 지표는 설문(의식)과 함께 SBI 통합 지수에 반영됩니다. 시각화된 파동은 영역별 상대적 활성도를 나타내며, 장산뇌혁신데이터랩의 뇌교육·BOS 프로그램 참여를 통해 지속적인 개선이 가능합니다.</p>';
+      return html;
+    }
+
+    function renderEegPanel() {
+      const eeg = getCurrentEeg();
+      const tbl = document.getElementById('eeg-data-table');
+      const lower = document.getElementById('lower-eeg');
+      const reportEl = document.getElementById('eeg-ai-report');
+      const reportWrap = document.getElementById('eeg-ai-report-wrap');
+
+      if (!eeg) {
+        tbl.innerHTML = '<p class="text-slate-500 p-4 text-base">뇌파 원천 데이터를 불러오거나, 위에서 주요 지표(0~100)를 입력한 뒤 [적용 및 시각화]를 누르세요. 설문 제출 후에는 자동으로 가상 뇌파가 표시됩니다.</p>';
+        if (lower) lower.innerHTML = '<p class="text-slate-500 text-base">—</p>';
+        if (reportEl) reportEl.innerHTML = '<p class="text-slate-400">뇌파 데이터 적용 후 AI 기반 추가 해석 및 설명 보고서가 여기에 표시됩니다.</p>';
+        document.getElementById('eeg-wave-wrap').querySelector('canvas').getContext('2d').clearRect(0, 0, 0, 0);
+        if (eegChart) { eegChart.destroy(); eegChart = null; }
+        if (eegWaveChart) { eegWaveChart.destroy(); eegWaveChart = null; }
+        return;
+      }
+
+      let rows = '<table class="w-full text-lg"><thead><tr class="bg-violet-100"><th class="p-3 text-left">영역 (정식 명칭)</th><th class="p-3 text-right">뇌파 지표(0~100)</th></tr></thead><tbody>';
+      EEG_KEYS_ORDER.forEach((k) => {
+        const name = DOMAIN_FORMAL_NAMES[k] || k;
+        const v = eeg[k];
+        rows += '<tr class="border-t border-slate-200"><td class="p-3">' + name + '</td><td class="p-3 text-right font-medium">' + (v != null ? v : '—') + '</td></tr>';
+      });
+      rows += '</tbody></table>';
+      tbl.innerHTML = rows;
+      if (lower) {
+        lower.innerHTML = EEG_KEYS_ORDER.map((k) => {
+          const name = DOMAIN_FORMAL_NAMES[k] || k;
+          const v = eeg[k];
+          return '<div class="flex justify-between"><span>' + name + '</span><span class="font-medium">' + (v != null ? v : '—') + '</span></div>';
+        }).join('');
+      }
+
+      if (eegChart) eegChart.destroy();
+      const ctx = document.getElementById('eeg-chart').getContext('2d');
+      eegChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: EEG_KEYS_ORDER.map((k) => DOMAIN_FORMAL_NAMES[k] || k),
+          datasets: [{ label: '뇌파 지표', data: EEG_KEYS_ORDER.map((k) => eeg[k]), backgroundColor: ['#7c3aed', '#10b981', '#8b5cf6', '#f59e0b'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } } }
+      });
+
+      const waveWrap = document.getElementById('eeg-wave-wrap');
+      const waveCanvas = document.getElementById('eeg-wave-chart');
+      if (waveWrap && waveCanvas) {
+        if (eegWaveChart) eegWaveChart.destroy();
+        const points = 40;
+        const step = 2 * Math.PI / 20;
+        const colors = ['#7c3aed', '#10b981', '#8b5cf6', '#f59e0b'];
+        const datasets = EEG_KEYS_ORDER.map((k, i) => {
+          const amp = Number(eeg[k]) || 50;
+          const data = [];
+          for (let j = 0; j < points; j++) data.push(Math.round((amp / 100) * (50 + 45 * Math.sin(step * j + i)) * 10) / 10);
+          return { label: (DOMAIN_FORMAL_NAMES[k] || k).slice(0, 8), data: data, borderColor: colors[i], backgroundColor: colors[i] + '20', fill: false };
+        });
+        eegWaveChart = new Chart(waveCanvas.getContext('2d'), {
+          type: 'line',
+          data: { labels: Array.from({ length: points }, (_, i) => i), datasets: datasets },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 }, x: { display: true, title: { display: true, text: '구간' } } } }
+        });
+      }
+
+      if (reportEl) reportEl.innerHTML = buildEegAiReport(eeg);
+      if (reportWrap) reportWrap.classList.remove('hidden');
+      document.getElementById('badge-step3').classList.remove('hidden');
+    }
+
+    /** 파일에서 4대 영역 지표 추출 (시각화용) */
+    function parseEegFromFile(content, filename) {
+      const lower = (filename || '').toLowerCase();
+      if (lower.endsWith('.json')) {
+        const o = JSON.parse(content);
+        const arr = Array.isArray(o) ? o[0] : o;
+        if (!arr || typeof arr !== 'object') return null;
+        return {
+          motivation: parseFloat(arr.motivation ?? arr.창업공감 ?? arr.동기부여) || 0,
+          resilience: parseFloat(arr.resilience ?? arr.위기감수 ?? arr.극복) || 0,
+          innovation: parseFloat(arr.innovation ?? arr.두뇌활용 ?? arr.계발) || 0,
+          responsibility: parseFloat(arr.responsibility ?? arr.주체적 ?? arr.창업의식) || 0
+        };
+      }
+      if (lower.endsWith('.csv')) {
+        const lines = content.trim().split(/\r?\n/);
+        if (lines.length < 2) return null;
+        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+        const values = lines[1].split(',').map((v) => (v || '').trim());
+        const map = {};
+        headers.forEach((h, i) => { map[h] = values[i]; });
+        const m = (key) => parseFloat(map[key]) || parseFloat(map['motivation']) || 50;
+        return {
+          motivation: m('motivation') || m('창업공감') || 50,
+          resilience: m('resilience') || m('위기감수') || 50,
+          innovation: m('innovation') || m('두뇌활용') || 50,
+          responsibility: m('responsibility') || m('주체적') || 50
+        };
+      }
+      return null;
+    }
+
+    /** 불러온 파일의 전체 컬럼·최대 5케이스 미리보기용 { columns, rows } */
+    function getEegFilePreview(content, filename) {
+      const lower = (filename || '').toLowerCase();
+      if (lower.endsWith('.json')) {
+        const o = JSON.parse(content);
+        if (Array.isArray(o) && o.length > 0) {
+          const cols = Object.keys(o[0] || {});
+          const rows = o.slice(0, 5).map((item) => cols.map((c) => item[c] != null ? String(item[c]) : ''));
+          return { columns: cols, rows: rows };
+        }
+        if (o && typeof o === 'object') {
+          const cols = Object.keys(o);
+          const rows = [cols.map((c) => o[c] != null ? String(o[c]) : '')];
+          return { columns: cols, rows: rows };
+        }
+        return null;
+      }
+      if (lower.endsWith('.csv')) {
+        const lines = content.trim().split(/\r?\n/);
+        if (lines.length < 1) return null;
+        const columns = lines[0].split(',').map((h) => h.trim());
+        const rows = lines.slice(1, 6).map((line) => line.split(',').map((c) => (c || '').trim()));
+        return { columns: columns, rows: rows };
+      }
+      return null;
+    }
+
+    function renderEegPreview(columns, rows) {
+      const wrap = document.getElementById('eeg-preview-wrap');
+      const tbl = document.getElementById('eeg-preview-table');
+      if (!wrap || !tbl) return;
+      if (!columns || !rows || rows.length === 0) { wrap.classList.add('hidden'); return; }
+      let html = '<thead><tr class="bg-violet-100 sticky top-0">';
+      columns.forEach((c) => { html += '<th class="p-2 text-left border-b border-violet-200 whitespace-nowrap">' + escapeHtml(c) + '</th>'; });
+      html += '</tr></thead><tbody>';
+      rows.forEach((row) => {
+        html += '<tr class="border-b border-slate-100">';
+        row.forEach((cell) => { html += '<td class="p-2 whitespace-nowrap">' + escapeHtml(cell) + '</td>'; });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      tbl.innerHTML = html;
+      wrap.classList.remove('hidden');
+    }
+
+    function renderLowerCharts(data) {
+      const subScores = data.하위역량별_점수 || [];
+      const names = subScores.map((s) => s.하위역량 || '');
+      const scores = subScores.map((s) => s.점수_0_100 != null ? s.점수_0_100 : 0);
+      if (lowerChart) lowerChart.destroy();
+      const ctx = document.getElementById('lower-chart').getContext('2d');
+      lowerChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: names,
+          datasets: [{ label: '점수(0~100)', data: scores, backgroundColor: '#2563eb' }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { x: { beginAtZero: true, max: 100 } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    let chatEegChart = null;
+    let chatCapabilityChart = null;
+
+    function ensureChatWelcome() {
+      const box = document.getElementById('chat-messages');
+      if (box.querySelector('.chat-msg')) return;
+      box.innerHTML = '<div class="chat-msg text-slate-600 text-lg"><strong>AI:</strong> 진단 결과에 대해 궁금한 점을 입력해 주세요. 역량별 해석, 뇌교육 단계, BOS 실천 과제 등에 대해 안내해 드립니다.</div>';
+      renderSuggestedQuestions();
+      showKeywordSection();
+    }
+
+    function renderChatVisualizations() {
+      const wrap = document.getElementById('chat-viz-wrap');
+      if (!wrap) return;
+      if (!lastAnalysis) { wrap.classList.add('hidden'); return; }
+      wrap.classList.remove('hidden');
+      const ordered = orderDomainsByFormal(lastAnalysis.영역별_통합점수 || lastAnalysis.영역별점수 || []);
+      const eegData = getCurrentEeg() || lastAnalysis.eeg_영역별 || {};
+      const eegValues = EEG_KEYS_ORDER.map((k) => eegData[k] != null ? eegData[k] : 0);
+      const eegLabels = EEG_KEYS_ORDER.map((k) => (DOMAIN_FORMAL_NAMES[k] || k).slice(0, 8));
+      if (chatEegChart) chatEegChart.destroy();
+      const ctxEeg = document.getElementById('chat-eeg-chart');
+      if (ctxEeg) {
+        chatEegChart = new Chart(ctxEeg.getContext('2d'), {
+          type: 'bar',
+          data: {
+            labels: eegLabels,
+            datasets: [{ label: '뇌파 지표', data: eegValues, backgroundColor: ['#7c3aed', '#10b981', '#8b5cf6', '#f59e0b'] }]
+          },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+        });
+      }
+      const subScores = lastAnalysis.하위역량별_점수 || [];
+      const names = subScores.map((s) => (s.하위역량 || '').slice(0, 6));
+      const scores = subScores.map((s) => s.점수_0_100 != null ? s.점수_0_100 : 0);
+      if (chatCapabilityChart) chatCapabilityChart.destroy();
+      const ctxCap = document.getElementById('chat-capability-chart');
+      if (ctxCap && names.length > 0) {
+        chatCapabilityChart = new Chart(ctxCap.getContext('2d'), {
+          type: 'bar',
+          data: { labels: names, datasets: [{ label: '점수', data: scores, backgroundColor: '#2563eb' }] },
+          options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, scales: { x: { beginAtZero: true, max: 100 } }, plugins: { legend: { display: false } } }
+        });
+      }
+    }
+
+    function renderSuggestedQuestions() {
+      const wrap = document.getElementById('suggested-questions');
+      const list = document.getElementById('suggested-questions-list');
+      if (!wrap || !list) return;
+      if (!lastAnalysis) { wrap.classList.add('hidden'); return; }
+      wrap.classList.remove('hidden');
+      const domains = lastAnalysis.영역별_통합점수 || lastAnalysis.영역별점수 || [];
+      const ordered = orderDomainsByFormal(domains);
+      const low = ordered.filter((x) => (x.d.combined_score != null ? x.d.combined_score : 0) < 60).slice(0, 3);
+      const report = lastAnalysis.리포트 || {};
+      const suggestions = [];
+      // 사용자 식별자(이메일 아이디 등)가 어색하게 노출되지 않도록 개인 호칭 문구는 사용하지 않음
+      suggestions.push('제 결과에서 가장 먼저 보강하면 좋을 역량이 뭔가요?');
+      if (low.length) suggestions.push(low[0].name + ' 점수를 올리려면 일상에서 뭘 해보면 좋을까요?');
+      low.forEach((x) => { suggestions.push(x.name + ' 점수가 낮은데 어떻게 보강할까요?'); suggestions.push(x.name + ' 관련 BOS 실천 방법이 궁금해요.'); });
+      if (currentUserProfile && (currentUserProfile.exercise_habit || '').trim() === '거의안함') suggestions.push('운동을 거의 안 하시는데, 뇌교육·BOS와 연결해 추천해 주실 수 있나요?');
+      if (currentUserProfile && (currentUserProfile.occupation || '').trim()) suggestions.push('제 직업(' + (currentUserProfile.occupation || '').trim() + ')에 맞는 역량 키우기 방법이 있을까요?');
+      suggestions.push('뇌교육 5단계와 제 결과를 연결해 설명해 주세요.');
+      suggestions.push('통합 지수를 높이려면 어떤 순서로 노력하면 좋을까요?');
+      list.innerHTML = suggestions.slice(0, 8).map((q) => '<button type="button" class="suggest-q px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm">' + escapeHtml(q) + '</button>').join('');
+      list.querySelectorAll('.suggest-q').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const question = btn.textContent;
+          document.getElementById('chat-input').value = question;
+          sendChatWithRag(question);
+        });
+      });
+    }
+
+    function showKeywordSection() {
+      const wrap = document.getElementById('keyword-search-wrap');
+      if (wrap) wrap.classList.remove('hidden');
+    }
+
+    // 관심 키워드 → 4대 영역 매핑 (부분 일치로 연관 역량 찾기)
+    var KEYWORD_TO_DOMAIN = {
+      '동기': 0, '동기부여': 0, '공감': 0, '창업공감': 0, '생태계': 0, '구성원': 0,
+      '위기': 1, '극복': 1, '위기감수': 1, '회복': 1, '리스크': 1, '실패': 1, '도전': 1,
+      '두뇌': 2, '혁신': 2, '창의': 2, '계발': 2, '학습': 2, '몰입': 2, '창업두뇌': 2,
+      '책임': 3, '주체': 3, '창업의식': 3, '협업': 3, 'CSR': 3, '공동체': 3, '사회적': 3,
+      '뇌교육': -1, 'BOS': -1, '정신차려': -1, '굿뉴스': -1, '선택하면': -1
+    };
+    function searchKeywordRelated(keyword) {
+      if (!lastAnalysis) return '진단을 먼저 제출해 주시면 관심 키워드별 연관 내용을 보여드립니다.';
+      const raw = (keyword || '').trim();
+      const report = lastAnalysis.리포트 || {};
+      const domains = lastAnalysis.영역별_통합점수 || lastAnalysis.영역별점수 || [];
+      const ordered = orderDomainsByFormal(domains);
+      const parts = [];
+
+      // 1) 요약은 항상 포함 (키워드 있으면 앞에, 없어도 맨 앞에 한 번)
+      if (report.요약) parts.push('【요약】 ' + report.요약.slice(0, 250));
+
+      if (raw) {
+        const k = raw;
+        const tokens = k.replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+        const matchedDomainIndex = new Set();
+        tokens.forEach((t) => {
+          if (KEYWORD_TO_DOMAIN.hasOwnProperty(t)) {
+            const idx = KEYWORD_TO_DOMAIN[t];
+            if (idx >= 0 && idx < DOMAIN_ORDER.length) matchedDomainIndex.add(idx);
+          }
+        });
+        // 2) 키워드가 영역명/해석에 포함된 경우
+        (report.역량별 || []).forEach((s) => {
+          const name = (s.영역명 || '').trim();
+          const 해석 = (s.해석 || '');
+          const literalMatch = tokens.some((t) => name.indexOf(t) >= 0 || 해석.indexOf(t) >= 0) || name.indexOf(k) >= 0 || 해석.indexOf(k) >= 0;
+          if (literalMatch) parts.push('[' + name + '] ' + 해석.slice(0, 180));
+        });
+        // 3) 매핑으로 찾은 역량 (아직 안 나온 경우)
+        ordered.forEach((x, idx) => {
+          if (matchedDomainIndex.has(idx) && !parts.some((p) => p.indexOf(x.name) >= 0)) {
+            const 해석 = (report.역량별 || []).find((r) => (r.영역명 || '').indexOf(x.name) >= 0);
+            parts.push(x.name + ' 역량: ' + (x.d.combined_score != null ? x.d.combined_score.toFixed(1) : '—') + '점. ' + (해석 ? 해석.해석?.slice(0, 120) : '') + '…');
+          }
+        });
+      }
+
+      // 4) 키워드 없거나 매칭 없으면: 전체 역량 요약으로 fallback (항상 유의미한 내용 반환)
+      if (parts.length <= 1) {
+        ordered.forEach((x) => {
+          const 해석 = (report.역량별 || []).find((r) => (r.영역명 || '').indexOf(x.name) >= 0);
+          parts.push(x.name + ': ' + (x.d.combined_score != null ? x.d.combined_score.toFixed(1) : '—') + '점. ' + (해석 ? (해석.해석 || '').slice(0, 100) : '') + '…');
+        });
+      }
+
+      return parts.join('\n\n');
+    }
+
+    function addChatMessage(role, text) {
+      const box = document.getElementById('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg text-lg ' + (role === 'user' ? 'text-right text-slate-800' : 'text-slate-600');
+      const safe = escapeHtml(text).replace(/\n/g, '<br>');
+      div.innerHTML = '<strong>' + (role === 'user' ? '나' : 'AI') + ':</strong> ' + safe;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+    function escapeHtml(s) {
+      const div = document.createElement('div');
+      div.textContent = s;
+      return div.innerHTML;
+    }
+    async function sendChatWithRag(questionText) {
+      const text = (questionText || '').trim();
+      if (!text) return;
+      addChatMessage('user', text);
+      document.getElementById('badge-step4').classList.remove('hidden');
+      const box = document.getElementById('chat-messages');
+      const loading = document.createElement('div');
+      loading.className = 'chat-msg text-slate-500 text-base';
+      loading.id = 'chat-loading';
+      loading.textContent = 'AI 응답 생성 중…';
+      box.appendChild(loading);
+      box.scrollTop = box.scrollHeight;
+      try {
+        const report_context = lastAnalysis ? { 리포트: lastAnalysis.리포트, 영역별_통합점수: lastAnalysis.영역별_통합점수 || lastAnalysis.영역별점수 } : null;
+        const res = await fetch(API_BASE + '/api/consult', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: text, report_context: report_context })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '상담 요청 실패');
+        document.getElementById('chat-loading')?.remove();
+        addChatMessage('AI', data.answer || '답변을 생성하지 못했습니다.');
+        if (data.sources && data.sources.length) {
+          const src = data.sources.slice(0, 3).map((s) => (s.url ? s.title + ': ' + s.url : s.title)).join('\n');
+          if (src) addChatMessage('AI', '참고 링크:\n' + src);
+        }
+      } catch (e) {
+        document.getElementById('chat-loading')?.remove();
+        addChatMessage('AI', '일시 오류가 발생했습니다. ' + (e.message || e) + ' 다시 시도해 주세요.');
+      }
+    }
+
+    async function loadBoardList() {
+      const type = document.getElementById('board-type-filter').value;
+      const q = document.getElementById('board-search').value.trim();
+      try {
+        const params = new URLSearchParams();
+        if (type) params.set('type', type);
+        if (q) params.set('q', q);
+        const res = await fetch(API_BASE + '/api/board-list?' + params.toString(), { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+        renderBoardList(data.items || []);
+      } catch (e) {
+        document.getElementById('board-list-tbody').innerHTML = '<tr><td colspan="4" class="p-4 text-slate-500">' + escapeHtml(e.message || '목록을 불러올 수 없습니다.') + '</td></tr>';
+      }
+    }
+    function renderBoardList(items) {
+      const tbody = document.getElementById('board-list-tbody');
+      if (!items.length) {
+        tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-slate-500">등록된 글이 없습니다.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = items.map((x) => {
+        const typeLabel = x.type === 'resource' ? '자료실' : '게시판';
+        const date = (x.updated_at || x.created_at || '').slice(0, 10);
+        return '<tr class="border-t border-slate-100 hover:bg-violet-50/50"><td class="p-3 text-slate-600">' + escapeHtml(typeLabel) + '</td><td class="p-3"><button type="button" class="board-row-title text-left font-medium text-violet-700 hover:underline" data-id="' + x.id + '">' + escapeHtml(x.title || '') + '</button></td><td class="p-3 text-slate-500 text-sm">' + date + '</td><td class="p-3 text-right"><button type="button" class="board-edit px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm" data-id="' + x.id + '">수정</button> <button type="button" class="board-delete px-2 py-1 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 text-sm" data-id="' + x.id + '">삭제</button></td></tr>';
+      }).join('');
+      tbody.querySelectorAll('.board-row-title').forEach((btn) => btn.addEventListener('click', () => openBoardDetail(parseInt(btn.dataset.id, 10))));
+      tbody.querySelectorAll('.board-edit').forEach((btn) => btn.addEventListener('click', () => openBoardForm(parseInt(btn.dataset.id, 10))));
+      tbody.querySelectorAll('.board-delete').forEach((btn) => btn.addEventListener('click', () => deleteBoardItem(parseInt(btn.dataset.id, 10))));
+    }
+    function openBoardDetail(id) {
+      fetch(API_BASE + '/api/board/' + id, { credentials: 'same-origin' }).then((r) => r.json()).then((x) => {
+        document.getElementById('board-form-title').textContent = x.title || '(보기)';
+        document.getElementById('board-edit-id').value = '';
+        document.getElementById('board-form-type').value = x.type || 'board';
+        document.getElementById('board-form-type').disabled = false;
+        document.getElementById('board-form-title-input').value = x.title || '';
+        document.getElementById('board-form-content').value = x.content || '';
+        document.getElementById('board-form-wrap').classList.remove('hidden');
+        document.getElementById('board-form-title-input').readOnly = true;
+        document.getElementById('board-form-content').readOnly = true;
+        document.getElementById('board-form-save').classList.add('hidden');
+        document.getElementById('board-form-cancel').textContent = '닫기';
+      }).catch(() => alert('항목을 불러올 수 없습니다.'));
+    }
+    function openBoardForm(editId) {
+      document.getElementById('board-form-title').textContent = editId ? '글 수정' : '새 글 등록';
+      document.getElementById('board-edit-id').value = editId || '';
+      document.getElementById('board-form-title-input').value = '';
+      document.getElementById('board-form-content').value = '';
+      document.getElementById('board-form-title-input').readOnly = false;
+      document.getElementById('board-form-content').readOnly = false;
+      document.getElementById('board-form-save').classList.remove('hidden');
+      document.getElementById('board-form-cancel').textContent = '취소';
+      document.getElementById('board-form-type').disabled = !!editId;
+      document.getElementById('board-form-wrap').classList.remove('hidden');
+      if (editId) {
+        fetch(API_BASE + '/api/board/' + editId, { credentials: 'same-origin' }).then((r) => r.json()).then((x) => {
+          document.getElementById('board-form-type').value = x.type || 'board';
+          document.getElementById('board-form-title-input').value = x.title || '';
+          document.getElementById('board-form-content').value = x.content || '';
+        }).catch(() => {});
+      }
+    }
+    async function saveBoardForm() {
+      const editId = document.getElementById('board-edit-id').value;
+      const type = document.getElementById('board-form-type').value;
+      const title = document.getElementById('board-form-title-input').value.trim();
+      const content = document.getElementById('board-form-content').value;
+      if (!title) { alert('제목을 입력하세요.'); return; }
+      try {
+        let errDetail = '저장 실패';
+        if (editId) {
+          const res = await fetch(API_BASE + '/api/board/' + editId, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ title, content }) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { errDetail = Array.isArray(data.detail) ? data.detail.map(function(x) { return x.msg || x.loc?.join('.'); }).join(', ') : (data.detail || '수정 실패'); throw new Error(errDetail); }
+        } else {
+          const res = await fetch(API_BASE + '/api/board', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', body: JSON.stringify({ type, title, content }) });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) { errDetail = Array.isArray(data.detail) ? data.detail.map(function(x) { return x.msg || x.loc?.join('.'); }).join(', ') : (data.detail || '등록 실패'); throw new Error(errDetail); }
+        }
+        document.getElementById('board-form-wrap').classList.add('hidden');
+        loadBoardList();
+        alert('정상 저장되었습니다.');
+      } catch (e) {
+        const errMsg = (e && e.message) || String(e);
+        const friendly = (errMsg.indexOf('2003') >= 0 || errMsg.indexOf('connect') >= 0 || errMsg.indexOf('MySQL') >= 0)
+          ? '데이터베이스에 연결할 수 없습니다. MySQL 서버가 실행 중인지 확인해 주세요.'
+          : errMsg;
+        alert(friendly || '저장 실패');
+      }
+    }
+    async function deleteBoardItem(id) {
+      if (!confirm('이 항목을 삭제하시겠습니까?')) return;
+      try {
+        const res = await fetch(API_BASE + '/api/board/' + id, { method: 'DELETE', credentials: 'same-origin' });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(Array.isArray(data.detail) ? data.detail.map(function(x) { return x.msg || x.loc?.join('.'); }).join(', ') : (data.detail || '삭제 실패'));
+        loadBoardList();
+      } catch (e) {
+        alert(e.message || '삭제 실패');
+      }
+    }
+    function openSidebar() {
+      var sb = document.getElementById('sidebar');
+      var back = document.getElementById('sidebar-backdrop');
+      if (sb) sb.classList.remove('-translate-x-full');
+      if (back) { back.classList.remove('hidden'); back.setAttribute('aria-hidden', 'false'); }
+    }
+    function closeSidebar() {
+      document.getElementById('sidebar').classList.add('-translate-x-full');
+      document.getElementById('sidebar-backdrop').classList.add('hidden');
+      var back = document.getElementById('sidebar-backdrop');
+      if (back) back.setAttribute('aria-hidden', 'true');
+    }
+    function initDashboard() {
+      try {
+    // 클릭 위임용 핸들러 먼저 등록(아래에서 실제 구현으로 덮어씀)
+    if (typeof window.__openSaveLoadModal !== 'function') window.__openSaveLoadModal = function() {};
+    if (typeof window.__openSurveyLoadModal !== 'function') window.__openSurveyLoadModal = function() {};
+    if (typeof window.__runShortSurvey !== 'function') window.__runShortSurvey = function() {};
+    if (typeof window.__runRetryRandom !== 'function') window.__runRetryRandom = function() {};
+    // Step 1 패널만 먼저 보이게 하고, 나머지 초기화는 다음 틱에 실행(화면 멈춤 방지)
+    if (typeof showStep === 'function') showStep(1);
+    window.setTimeout(function doRestOfInit() {
+      try {
+    // Step 메뉴 클릭을 먼저 바인딩(설문진단 등 즉시 반응 보장)
+    document.querySelectorAll('a.step-link[data-step]').forEach(function(a) {
+      var step = parseInt(a.dataset.step, 10);
+      if (isNaN(step)) return;
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof showStep === 'function') showStep(step);
+        if (window.innerWidth < 1024 && typeof closeSidebar === 'function') closeSidebar();
+      });
+    });
+    var sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) sidebarToggle.addEventListener('click', () => {
+      if (document.getElementById('sidebar').classList.contains('-translate-x-full')) openSidebar();
+      else closeSidebar();
+    });
+    var langSw = document.getElementById('dashboard-lang-switch');
+    if (langSw) langSw.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      var next = (window.getSbiLang && window.getSbiLang() === 'ko') ? 'en' : 'ko';
+      if (window.setSbiLang) window.setSbiLang(next);
+      applyDashboardLang(next);
+      var upper = document.getElementById('upper-title');
+      if (upper) upper.textContent = stepTitles[currentStep];
+    });
+    var sidebarBackdrop = document.getElementById('sidebar-backdrop');
+    if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', closeSidebar);
+    var btnBack = document.getElementById('btn-back');
+    if (btnBack) btnBack.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); if (typeof currentStep !== 'undefined' && currentStep > 1 && typeof showStep === 'function') showStep(currentStep - 1); });
+    const adminDetailClose = document.getElementById('admin-detail-close');
+    if (adminDetailClose) adminDetailClose.addEventListener('click', closeAdminDetailModal);
+    const adminEditSave = document.getElementById('admin-edit-save');
+    if (adminEditSave) adminEditSave.addEventListener('click', saveAdminEdit);
+    const adminDeleteBtn = document.getElementById('admin-delete-btn');
+    if (adminDeleteBtn) adminDeleteBtn.addEventListener('click', () => { if (adminDetailId != null) confirmAdminDelete(adminDetailId); });
+    const adminListRefresh = document.getElementById('admin-list-refresh');
+    if (adminListRefresh) adminListRefresh.addEventListener('click', loadAdminList);
+    var btnGotoTop = document.getElementById('btn-goto-top');
+    if (btnGotoTop) btnGotoTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    async function openSaveLoadModal() {
+      const modal = document.getElementById('modal-save-load');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex', 'items-center', 'justify-center');
+      modal.setAttribute('aria-hidden', 'false');
+      const titleInput = document.getElementById('save-summary-title');
+      const suggestionsEl = document.getElementById('save-title-suggestions');
+      if (titleInput) titleInput.value = '';
+      if (suggestionsEl) suggestionsEl.innerHTML = '<span class="text-slate-400 text-sm">추천 불러오는 중…</span>';
+      const messages = getCurrentMessages();
+      try {
+        const res = await fetch(API_BASE + '/api/chat-suggest-titles', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ messages })
+        });
+        const data = await res.json();
+        const titles = (data.titles || []).slice(0, 3);
+        if (suggestionsEl) {
+          suggestionsEl.innerHTML = titles.length ? titles.map(function(t) {
+            return '<button type="button" class="save-title-suggest px-3 py-1.5 rounded-lg bg-violet-100 text-violet-800 hover:bg-violet-200 text-sm">' + escapeHtml(t) + '</button>';
+          }).join('') : '<span class="text-slate-400 text-sm">추천 제목 없음</span>';
+          suggestionsEl.querySelectorAll('.save-title-suggest').forEach(function(btn) {
+            btn.addEventListener('click', function() { if (titleInput) titleInput.value = btn.textContent || ''; });
+          });
+        }
+      } catch (e) {
+        if (suggestionsEl) suggestionsEl.innerHTML = '<span class="text-slate-400 text-sm">추천을 불러올 수 없습니다.</span>';
+      }
+      fetchSavedList();
+    }
+    window.__openSaveLoadModal = openSaveLoadModal;
+    function closeSaveLoadModal() {
+      const modal = document.getElementById('modal-save-load');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'items-center', 'justify-center');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    function getCurrentMessages() {
+      const box = document.getElementById('chat-messages');
+      const items = [];
+      if (!box) return items;
+      box.querySelectorAll('.chat-msg').forEach((el) => {
+        const raw = (el.textContent || '').trim();
+        let role = 'AI';
+        let text = raw;
+        if (raw.startsWith('나:')) { role = 'user'; text = raw.slice(2).trim(); }
+        else if (raw.startsWith('AI:')) { role = 'AI'; text = raw.slice(3).trim(); }
+        if (text) items.push({ role, text });
+      });
+      return items;
+    }
+    async function fetchSavedList() {
+      const listEl = document.getElementById('saved-list');
+      if (!listEl) return;
+      listEl.innerHTML = '<p class="text-slate-400">불러오는 중…</p>';
+      try {
+        const url = API_BASE + '/api/chat-saved-list' + (currentUserIsAdmin ? '?all_users=1' : '');
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+        const items = data.items || [];
+        if (items.length === 0) {
+          listEl.innerHTML = '<p class="text-slate-400">저장된 요약이 없습니다.</p>';
+          return;
+        }
+        listEl.innerHTML = items.map((it) => {
+          const date = (it.saved_at || '').slice(0, 10);
+          const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
+          return '<label class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 border border-transparent hover:border-violet-200"><input type="radio" name="saved-chat-select" value="' + it.id + '" class="saved-chat-radio shrink-0"><div class="min-w-0 flex-1"><span class="font-medium text-slate-700">' + escapeHtml(it.summary_title || '제목 없음') + '</span>' + sub + '<span class="text-slate-400 text-xs ml-2">' + date + '</span></div><button type="button" class="btn-load-saved shrink-0 px-3 py-1.5 rounded-lg bg-primary-500 text-white text-sm" data-id="' + it.id + '">불러오기</button></label>';
+        }).join('');
+        listEl.querySelectorAll('.btn-load-saved').forEach((btn) => {
+          btn.addEventListener('click', (e) => { e.preventDefault(); loadSaved(parseInt(btn.dataset.id, 10)); });
+        });
+        const loadSelectedBtn = document.getElementById('btn-load-selected-saved');
+        if (loadSelectedBtn) { loadSelectedBtn.classList.remove('hidden'); loadSelectedBtn.onclick = function() { var r = listEl.querySelector('input[name="saved-chat-select"]:checked'); if (r) loadSaved(parseInt(r.value, 10)); else alert('불러올 항목을 선택해 주세요.'); }; }
+      } catch (e) {
+        listEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
+      }
+    }
+    async function loadSaved(saveId) {
+      try {
+        const res = await fetch(API_BASE + '/api/chat-saved/' + saveId, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '불러오기 실패');
+        const box = document.getElementById('chat-messages');
+        box.innerHTML = '';
+        (data.messages || []).forEach((m) => addChatMessage(m.role === 'user' ? 'user' : 'AI', m.text));
+        aiConsultationNotes = data.ai_consultation_notes || [];
+        closeSaveLoadModal();
+        showStep(4);
+      } catch (e) {
+        alert('불러오기 실패: ' + (e.message || e));
+      }
+    }
+    var btnSave = document.getElementById('btn-save');
+    if (btnSave) btnSave.addEventListener('click', function(e) { e.preventDefault(); openSaveLoadModal(); });
+    var modalSaveLoadClose = document.getElementById('modal-save-load-close');
+    if (modalSaveLoadClose) modalSaveLoadClose.addEventListener('click', closeSaveLoadModal);
+    var modalSaveLoad = document.getElementById('modal-save-load');
+    if (modalSaveLoad) modalSaveLoad.addEventListener('click', (e) => { if (e.target.id === 'modal-save-load') closeSaveLoadModal(); });
+    var btnSaveCurrent = document.getElementById('btn-save-current');
+    if (btnSaveCurrent) btnSaveCurrent.addEventListener('click', async () => {
+      const messages = getCurrentMessages();
+      const title = (document.getElementById('save-summary-title').value || '').trim();
+      try {
+        const res = await fetch(API_BASE + '/api/chat-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ messages, ai_consultation_notes: aiConsultationNotes, summary_title: title || null })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '저장 실패');
+        document.getElementById('save-summary-title').value = '';
+        fetchSavedList();
+        alert(data.saved_ok ? '정상 저장되었습니다.' : '저장되었습니다. (저장 기간 6개월 한정)');
+      } catch (e) {
+        const msg = (e && e.message) || String(e);
+        const friendly = (msg.indexOf('2003') >= 0 || msg.indexOf('connect') >= 0 || msg.indexOf('MySQL') >= 0)
+          ? '데이터베이스에 연결할 수 없습니다. MySQL 서버가 실행 중인지 확인해 주세요.'
+          : msg;
+        alert('저장 실패: ' + friendly);
+      }
+    });
+
+    function openSurveyLoadModal() {
+      if (typeof ensureUnansweredVisible === 'function') ensureUnansweredVisible();
+      const modal = document.getElementById('modal-survey-load');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      modal.classList.add('flex', 'items-center', 'justify-center');
+      modal.setAttribute('aria-hidden', 'false');
+      if (document.getElementById('survey-load-search')) document.getElementById('survey-load-search').value = '';
+      fetchSurveySavedList();
+    }
+    window.__openSurveyLoadModal = openSurveyLoadModal;
+    function closeSurveyLoadModal() {
+      const modal = document.getElementById('modal-survey-load');
+      modal.classList.add('hidden');
+      modal.classList.remove('flex', 'items-center', 'justify-center');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    async function fetchSurveySavedList() {
+      const listEl = document.getElementById('survey-saved-list');
+      if (!listEl) return;
+      const q = (document.getElementById('survey-load-search') && document.getElementById('survey-load-search').value) ? document.getElementById('survey-load-search').value.trim() : '';
+      listEl.innerHTML = '<p class="text-slate-400">불러오는 중…</p>';
+      try {
+        const params = new URLSearchParams();
+        if (q) params.set('q', q);
+        if (currentUserIsAdmin) params.set('all_users', '1');
+        const url = API_BASE + '/api/survey-saved-list' + (params.toString() ? '?' + params.toString() : '');
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+        const items = data.items || [];
+        if (items.length === 0) {
+          listEl.innerHTML = '<p class="text-slate-400">저장된 설문 이력이 없습니다.</p>';
+          return;
+        }
+        listEl.innerHTML = items.map((it) => {
+          const title = (it.title || '').trim() || ('저장 ' + (it.saved_at || it.created_at || '').slice(0, 16));
+          const dateStr = (it.saved_at || it.created_at || '').replace('T', ' ').slice(0, 16);
+          const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
+          return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100"><div class="min-w-0 flex-1"><span class="font-medium text-violet-800 block truncate">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-survey shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
+        }).join('');
+        listEl.querySelectorAll('.btn-load-survey').forEach((btn) => {
+          btn.addEventListener('click', () => loadSurveyById(parseInt(btn.dataset.id, 10)));
+        });
+      } catch (e) {
+        listEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
+      }
+    }
+    async function loadSurveyById(saveId) {
+      try {
+        const res = await fetch(API_BASE + '/api/survey-saved/' + saveId, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '불러오기 실패');
+        const loaded = data.responses || {};
+        const reqSeq = data.required_sequences || [];
+        const excluded = data.excluded_sequences || [];
+        Object.keys(responses).forEach((k) => delete responses[k]);
+        Object.entries(loaded).forEach(([k, v]) => { responses[parseInt(k, 10)] = v; });
+        requiredSequences = reqSeq;
+        document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
+        requiredSequences.forEach((seq) => {
+          const score = responses[seq];
+          if (score != null) {
+            const radio = document.querySelector('input[name="q' + seq + '"][value="' + score + '"]');
+            if (radio) radio.checked = true;
+          }
+        });
+        updateProgress();
+        surveyDirty = false;
+        loadedSurveyId = saveId;
+        loadedSurveyTitle = (data.title || '').trim() || '';
+        addedSaveCount = 0;
+        document.getElementById('btn-survey-save-new').classList.remove('hidden');
+        closeSurveyLoadModal();
+        const analyzeRes = await fetch(API_BASE + '/analyze-sbi', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ responses: loaded, excluded_sequences: excluded })
+        });
+        const analyzeData = await analyzeRes.json();
+        if (!analyzeRes.ok) throw new Error(analyzeData.detail || '분석 실패');
+        renderResult(analyzeData);
+        showStep(2);
+      } catch (e) {
+        alert('불러오기 실패: ' + (e.message || e));
+      }
+    }
+    async function saveSurveyNew() {
+      const missing = requiredSequences.filter((seq) => responses[seq] == null);
+      if (missing.length > 0) {
+        ensureUnansweredVisible();
+        alert('미응답 문항이 ' + missing.length + '건 있습니다. 위 미응답 목록을 확인하고 모두 응답한 뒤 다시 저장해 주세요.');
+        return;
+      }
+      const excluded = [];
+      for (let s = 1; s <= 96; s++) { if (!requiredSequences.includes(s)) excluded.push(s); }
+      const body = { responses, required_sequences: requiredSequences, excluded_sequences: excluded };
+      // 항상 새 파일로 추가 저장 (save_id 미전송). 불러온 설문이면 제목에 [추가저장 N 일시] 추가
+      if (loadedSurveyTitle) {
+        addedSaveCount += 1;
+        const now = new Date();
+        const ts = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0') + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+        body.title = loadedSurveyTitle + ' [추가저장 ' + addedSaveCount + ' ' + ts + ']';
+      } else {
+        body.survey_type = surveyType;
+      }
+      try {
+        const res = await fetch(API_BASE + '/api/survey-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '저장 실패');
+        surveyDirty = false;
+        const msg = data.saved_ok ? '정상 저장되었습니다. 불러오기 목록에서 새 파일을 확인할 수 있습니다.' : '저장되었습니다.';
+        alert(msg);
+      } catch (e) {
+        const errMsg = (e && e.message) || String(e);
+        const friendly = (errMsg.indexOf('2003') >= 0 || errMsg.indexOf('connect') >= 0 || errMsg.indexOf('MySQL') >= 0)
+          ? '데이터베이스에 연결할 수 없습니다. MySQL 서버가 실행 중인지 확인해 주세요.'
+          : errMsg;
+        alert('저장 실패: ' + friendly);
+      }
+    }
+    var btnSurveyLoad = document.getElementById('btn-survey-load');
+    if (btnSurveyLoad) btnSurveyLoad.addEventListener('click', openSurveyLoadModal);
+    var btnSurveySaveNew = document.getElementById('btn-survey-save-new');
+    if (btnSurveySaveNew) btnSurveySaveNew.addEventListener('click', saveSurveyNew);
+    var modalSurveyLoadClose = document.getElementById('modal-survey-load-close');
+    if (modalSurveyLoadClose) modalSurveyLoadClose.addEventListener('click', closeSurveyLoadModal);
+    var modalSurveyLoad = document.getElementById('modal-survey-load');
+    if (modalSurveyLoad) modalSurveyLoad.addEventListener('click', (e) => { if (e.target.id === 'modal-survey-load') closeSurveyLoadModal(); });
+    var surveyLoadSearchBtn = document.getElementById('survey-load-search-btn');
+    if (surveyLoadSearchBtn) surveyLoadSearchBtn.addEventListener('click', fetchSurveySavedList);
+    var surveyLoadSearch = document.getElementById('survey-load-search');
+    if (surveyLoadSearch) surveyLoadSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchSurveySavedList(); });
+
+    function openEegListModal() {
+      const modal = document.getElementById('modal-eeg-list');
+      if (modal) { modal.classList.remove('hidden'); modal.classList.add('flex', 'items-center', 'justify-center'); modal.setAttribute('aria-hidden', 'false'); }
+      fetchEegSavedList();
+    }
+    function closeEegListModal() {
+      const modal = document.getElementById('modal-eeg-list');
+      if (modal) { modal.classList.add('hidden'); modal.classList.remove('flex', 'items-center', 'justify-center'); modal.setAttribute('aria-hidden', 'true'); }
+    }
+    async function fetchEegSavedList() {
+      const listEl = document.getElementById('eeg-saved-list');
+      if (!listEl) return;
+      listEl.innerHTML = '<p class="text-slate-400">불러오는 중…</p>';
+      try {
+        const url = API_BASE + '/api/eeg-saved-list' + (currentUserIsAdmin ? '?all_users=1' : '');
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '목록 조회 실패');
+        const items = data.items || [];
+        if (items.length === 0) { listEl.innerHTML = '<p class="text-slate-400">저장된 뇌파 데이터가 없습니다.</p>'; return; }
+        listEl.innerHTML = items.map((it) => {
+          const title = (it.title || '').trim() || ('뇌파 ' + (it.saved_at || '').slice(0, 16));
+          const dateStr = (it.saved_at || '').replace('T', ' ').slice(0, 16);
+          const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
+          return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100"><div class="min-w-0 flex-1"><span class="font-medium text-violet-800 block truncate">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-eeg shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
+        }).join('');
+        listEl.querySelectorAll('.btn-load-eeg').forEach((btn) => {
+          btn.addEventListener('click', () => loadEegById(parseInt(btn.dataset.id, 10)));
+        });
+      } catch (e) {
+        listEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
+      }
+    }
+    async function loadEegById(saveId) {
+      try {
+        const res = await fetch(API_BASE + '/api/eeg-saved/' + saveId, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '불러오기 실패');
+        const d = data.data || {};
+        eegOverride = d;
+        document.getElementById('eeg-input-motivation').value = d.motivation ?? '';
+        document.getElementById('eeg-input-resilience').value = d.resilience ?? '';
+        document.getElementById('eeg-input-innovation').value = d.innovation ?? '';
+        document.getElementById('eeg-input-responsibility').value = d.responsibility ?? '';
+        if (d.alpha != null) document.getElementById('eeg-input-alpha').value = d.alpha;
+        if (d.beta != null) document.getElementById('eeg-input-beta').value = d.beta;
+        if (d.theta != null) document.getElementById('eeg-input-theta').value = d.theta;
+        if (d.delta != null) document.getElementById('eeg-input-delta').value = d.delta;
+        if (d.engagement != null) document.getElementById('eeg-input-engagement').value = d.engagement;
+        if (d.focus != null) document.getElementById('eeg-input-focus').value = d.focus;
+        renderEegPanel();
+        closeEegListModal();
+      } catch (e) {
+        alert('불러오기 실패: ' + (e.message || e));
+      }
+    }
+    var eegLoadFile = document.getElementById('eeg-load-file');
+    if (eegLoadFile) eegLoadFile.addEventListener('click', () => {
+      const input = document.getElementById('eeg-file-input');
+      if (!input.files || !input.files[0]) { alert('파일을 선택하세요.'); return; }
+      const f = input.files[0];
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const preview = getEegFilePreview(reader.result, f.name);
+          if (preview) renderEegPreview(preview.columns, preview.rows);
+          else document.getElementById('eeg-preview-wrap').classList.add('hidden');
+          const data = parseEegFromFile(reader.result, f.name);
+          if (!data) { alert('JSON/CSV 형식을 확인하세요. (motivation, resilience, innovation, responsibility 또는 한글 키)'); return; }
+          eegOverride = data;
+          document.getElementById('eeg-input-motivation').value = data.motivation ?? '';
+          document.getElementById('eeg-input-resilience').value = data.resilience ?? '';
+          document.getElementById('eeg-input-innovation').value = data.innovation ?? '';
+          document.getElementById('eeg-input-responsibility').value = data.responsibility ?? '';
+          const saveBtn = document.getElementById('eeg-save-current');
+          if (saveBtn) { saveBtn.classList.remove('hidden'); }
+          renderEegPanel();
+        } catch (e) {
+          alert('파일 파싱 오류: ' + (e.message || e));
+        }
+      };
+      reader.readAsText(f, 'UTF-8');
+    });
+    var eegApplyInputs = document.getElementById('eeg-apply-inputs');
+    if (eegApplyInputs) eegApplyInputs.addEventListener('click', () => {
+      const m = parseFloat(document.getElementById('eeg-input-motivation').value);
+      const r = parseFloat(document.getElementById('eeg-input-resilience').value);
+      const i = parseFloat(document.getElementById('eeg-input-innovation').value);
+      const resp = parseFloat(document.getElementById('eeg-input-responsibility').value);
+      const clamp = (v) => (v != null && !isNaN(v) ? Math.max(0, Math.min(100, v)) : null);
+      eegOverride = {
+        motivation: clamp(m) ?? 50,
+        resilience: clamp(r) ?? 50,
+        innovation: clamp(i) ?? 50,
+        responsibility: clamp(resp) ?? 50
+      };
+      const alpha = document.getElementById('eeg-input-alpha').value;
+      const beta = document.getElementById('eeg-input-beta').value;
+      const theta = document.getElementById('eeg-input-theta').value;
+      const delta = document.getElementById('eeg-input-delta').value;
+      const engagement = document.getElementById('eeg-input-engagement').value;
+      const focus = document.getElementById('eeg-input-focus').value;
+      const num = (v) => { const x = parseFloat(v); return v !== '' && !isNaN(x) ? x : null; };
+      if (num(alpha) != null) eegOverride.alpha = num(alpha);
+      if (num(beta) != null) eegOverride.beta = num(beta);
+      if (num(theta) != null) eegOverride.theta = num(theta);
+      if (num(delta) != null) eegOverride.delta = num(delta);
+      if (num(engagement) != null) eegOverride.engagement = Math.max(0, Math.min(100, num(engagement)));
+      if (num(focus) != null) eegOverride.focus = Math.max(0, Math.min(100, num(focus)));
+      const saveBtn = document.getElementById('eeg-save-current');
+      if (saveBtn) saveBtn.classList.remove('hidden');
+      renderEegPanel();
+      const msgEl = document.getElementById('eeg-apply-message');
+      const vizSection = document.getElementById('eeg-viz-section');
+      if (msgEl) {
+        msgEl.textContent = '반영 되었습니다.';
+        msgEl.classList.remove('hidden');
+        setTimeout(function() { msgEl.classList.add('hidden'); msgEl.textContent = ''; }, 2500);
+      }
+      if (vizSection) vizSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    var eegSaveCurrent = document.getElementById('eeg-save-current');
+    if (eegSaveCurrent) eegSaveCurrent.addEventListener('click', async () => {
+      const eeg = getCurrentEeg();
+      if (!eeg || typeof eeg !== 'object') { alert('저장할 뇌파 데이터가 없습니다. 파일을 불러오거나 지표를 입력한 뒤 저장하세요.'); return; }
+      try {
+        const res = await fetch(API_BASE + '/api/eeg-save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ data: eeg })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '저장 실패');
+        alert(data.saved_ok ? '정상 저장되었습니다.' : '저장되었습니다.');
+        fetchEegSavedList();
+      } catch (e) {
+        const errMsg = (e && e.message) || String(e);
+        const friendly = (errMsg.indexOf('2003') >= 0 || errMsg.indexOf('connect') >= 0 || errMsg.indexOf('MySQL') >= 0)
+          ? '데이터베이스에 연결할 수 없습니다. MySQL 서버가 실행 중인지 확인해 주세요.'
+          : errMsg;
+        alert('저장 실패: ' + friendly);
+      }
+    });
+    var eegListOpen = document.getElementById('eeg-list-open');
+    if (eegListOpen) eegListOpen.addEventListener('click', openEegListModal);
+    var modalEegListClose = document.getElementById('modal-eeg-list-close');
+    if (modalEegListClose) modalEegListClose.addEventListener('click', closeEegListModal);
+    var modalEegList = document.getElementById('modal-eeg-list');
+    if (modalEegList) modalEegList.addEventListener('click', (e) => { if (e.target.id === 'modal-eeg-list') closeEegListModal(); });
+    var btnShowUnanswered = document.getElementById('btn-show-unanswered-list');
+    if (btnShowUnanswered) btnShowUnanswered.addEventListener('click', toggleUnansweredList);
+    var boardSearchBtn = document.getElementById('board-search-btn');
+    if (boardSearchBtn) boardSearchBtn.addEventListener('click', () => { showStep(5); loadBoardList(); });
+    var boardTypeFilter = document.getElementById('board-type-filter');
+    if (boardTypeFilter) boardTypeFilter.addEventListener('change', () => loadBoardList());
+    var boardSearch = document.getElementById('board-search');
+    if (boardSearch) boardSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { showStep(5); loadBoardList(); } });
+    var boardAddBtn = document.getElementById('board-add-btn');
+    if (boardAddBtn) boardAddBtn.addEventListener('click', () => {
+      openBoardForm(null);
+      const formWrap = document.getElementById('board-form-wrap');
+      if (formWrap) formWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    var boardFormSave = document.getElementById('board-form-save');
+    if (boardFormSave) boardFormSave.addEventListener('click', saveBoardForm);
+    var boardFormCancel = document.getElementById('board-form-cancel');
+    if (boardFormCancel) boardFormCancel.addEventListener('click', () => {
+      var wrap = document.getElementById('board-form-wrap');
+      if (wrap) wrap.classList.add('hidden');
+      var titleInput = document.getElementById('board-form-title-input');
+      if (titleInput) titleInput.readOnly = false;
+      var content = document.getElementById('board-form-content');
+      if (content) content.readOnly = false;
+      if (boardFormSave) boardFormSave.classList.remove('hidden');
+      if (boardFormCancel) boardFormCancel.textContent = '취소';
+      var formTitle = document.getElementById('board-form-title');
+      if (formTitle) formTitle.textContent = '새 글 등록';
+      var formType = document.getElementById('board-form-type');
+      if (formType) formType.disabled = false;
+    });
+    var surveyLoadInProgress = false;
+    function setSurveyLoadButtonsEnabled(enabled) {
+      surveyLoadInProgress = !enabled;
+      var shortBtn = document.getElementById('btn-short-survey');
+      var fullBtn = document.getElementById('btn-full-survey');
+      var retryBtn = document.getElementById('btn-retry-random');
+      var loadBtn = document.getElementById('btn-survey-load');
+      [shortBtn, fullBtn, retryBtn, loadBtn].forEach(function(btn) {
+        if (!btn) return;
+        btn.disabled = !enabled;
+        if (enabled) {
+          if (btn === shortBtn) btn.textContent = '간편 설문 (하위요소당 2문항)';
+          else if (btn === retryBtn) btn.textContent = '다시하기 (역량별 랜덤 제시)';
+          else if (btn === loadBtn) btn.textContent = '불러오기';
+          else if (btn === fullBtn) btn.textContent = '전체 설문 (96문항)';
+        }
+      });
+    }
+    async function runRetryRandom() {
+      if (surveyLoadInProgress) return;
+      setSurveyLoadButtonsEnabled(false);
+      var retryBtn = document.getElementById('btn-retry-random');
+      if (retryBtn) retryBtn.textContent = '불러오는 중…';
+      try {
+        surveyDirty = false;
+        loadedSurveyId = null;
+        surveyType = 'short_random';
+        var saveNewBtn = document.getElementById('btn-survey-save-new');
+        if (saveNewBtn) saveNewBtn.classList.add('hidden');
+        Object.keys(responses).forEach((k) => delete responses[k]);
+        await loadSurveyItems('random_domain', 0);
+        renderQuestions();
+        document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
+        ensureUnansweredVisible();
+      } catch (e) {
+        alert('문항 불러오기 실패: ' + (e.message || e));
+      } finally {
+        setSurveyLoadButtonsEnabled(true);
+      }
+    }
+    window.__runRetryRandom = runRetryRandom;
+    var btnRetryRandom = document.getElementById('btn-retry-random');
+    if (btnRetryRandom) btnRetryRandom.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runRetryRandom(); });
+
+    async function runShortSurvey() {
+      if (surveyLoadInProgress) return;
+      setSurveyLoadButtonsEnabled(false);
+      var shortBtn = document.getElementById('btn-short-survey');
+      if (shortBtn) shortBtn.textContent = '불러오는 중…';
+      try {
+        surveyDirty = false;
+        loadedSurveyId = null;
+        surveyType = 'short_random';
+        var saveNewBtn = document.getElementById('btn-survey-save-new');
+        if (saveNewBtn) saveNewBtn.classList.add('hidden');
+        Object.keys(responses).forEach((k) => delete responses[k]);
+        await loadSurveyItems('sequence', 1);
+        renderQuestions();
+        var sBtn = document.getElementById('btn-short-survey');
+        var fullBtn = document.getElementById('btn-full-survey');
+        if (sBtn) sBtn.classList.add('hidden');
+        if (fullBtn) fullBtn.classList.remove('hidden');
+      } catch (e) {
+        alert('문항 불러오기 실패: ' + (e.message || e));
+      } finally {
+        setSurveyLoadButtonsEnabled(true);
+      }
+    }
+    window.__runShortSurvey = runShortSurvey;
+    var btnShortSurvey = document.getElementById('btn-short-survey');
+    if (btnShortSurvey) btnShortSurvey.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runShortSurvey(); });
+
+    var btnFullSurvey = document.getElementById('btn-full-survey');
+    if (btnFullSurvey) btnFullSurvey.addEventListener('click', async function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (surveyLoadInProgress) return;
+      setSurveyLoadButtonsEnabled(false);
+      btnFullSurvey.textContent = '불러오는 중…';
+      try {
+        surveyDirty = false;
+        loadedSurveyId = null;
+        surveyType = 'full';
+        var saveNewBtn = document.getElementById('btn-survey-save-new');
+        if (saveNewBtn) saveNewBtn.classList.add('hidden');
+        Object.keys(responses).forEach((k) => delete responses[k]);
+        await loadSurveyItems('sequence', 0);
+        renderQuestions();
+        var shortBtn = document.getElementById('btn-short-survey');
+        var fullBtn = document.getElementById('btn-full-survey');
+        if (fullBtn) fullBtn.classList.add('hidden');
+        if (shortBtn) shortBtn.classList.remove('hidden');
+      } catch (err) {
+        alert('문항 불러오기 실패: ' + (err.message || err));
+      } finally {
+        setSurveyLoadButtonsEnabled(true);
+      }
+    });
+
+    const submitBtn = document.getElementById('submit-survey-btn');
+    if (submitBtn) {
+      submitBtn.addEventListener('mouseenter', function() { if (submitBtn.disabled) ensureUnansweredVisible(); });
+      submitBtn.addEventListener('focus', function() { if (submitBtn.disabled) ensureUnansweredVisible(); });
+      submitBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var btn = document.getElementById('submit-survey-btn');
+      if (btn && btn.disabled) return;
+      const missing = requiredSequences.filter((seq) => responses[seq] == null);
+      const answered = requiredSequences.filter((seq) => responses[seq] != null).length;
+      if (requiredSequences.length === 0) { alert('문항을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.'); return; }
+      if (answered === 0) { ensureUnansweredVisible(); alert('문항에 먼저 응답해 주세요.'); return; }
+      if (missing.length > 0) {
+        ensureUnansweredVisible();
+        clearUnansweredHint();
+      }
+      btn.disabled = true;
+      btn.textContent = '제출 중…';
+      var excluded = computeExcludedSequences();
+      fetch(API_BASE + '/analyze-sbi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ responses: responses, excluded_sequences: excluded })
+      }).then(function(res) { return res.json().then(function(data) { return { res: res, data: data }; }); })
+        .then(function(r) {
+          if (!r.res.ok) throw new Error(r.data.detail || '제출 실패');
+          renderResult(r.data);
+          if (typeof showStep === 'function') showStep(2);
+        })
+        .catch(function(err) {
+          alert('제출 실패: ' + (err.message || err));
+        })
+        .finally(function() {
+          btn.disabled = false;
+          updateProgress();
+        });
+    });
+    }
+
+    var btnDownloadPdf = document.getElementById('btn-download-pdf');
+    if (btnDownloadPdf) btnDownloadPdf.addEventListener('click', async () => {
+      if (!lastAnalysis) { alert('먼저 설문을 제출해 주세요.'); return; }
+      const excluded = computeExcludedSequences();
+      try {
+        const res = await fetch(API_BASE + '/api/generate-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ responses, excluded_sequences: excluded, ai_consultation_notes: aiConsultationNotes.length ? aiConsultationNotes : null, user_profile: currentUserProfile || null })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.getElementById('link-pdf');
+        a.href = url;
+        a.download = 'sbi_report.pdf';
+        a.classList.remove('hidden');
+        a.click();
+      } catch (e) {
+        alert('PDF 생성 실패: ' + (e.message || e));
+      }
+    });
+
+    var chatSend = document.getElementById('chat-send');
+    if (chatSend) chatSend.addEventListener('click', () => {
+      const input = document.getElementById('chat-input');
+      const text = (input && input.value) ? input.value.trim() : '';
+      if (!text) return;
+      if (input) input.value = '';
+      sendChatWithRag(text);
+    });
+    var chatInput = document.getElementById('chat-input');
+    if (chatInput) chatInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && chatSend) chatSend.click(); });
+
+    var keywordSearchBtn = document.getElementById('keyword-search-btn');
+    if (keywordSearchBtn) keywordSearchBtn.addEventListener('click', () => {
+      const kw = (document.getElementById('keyword-input').value || '').trim();
+      const resultEl = document.getElementById('keyword-result');
+      const addBtn = document.getElementById('keyword-add-report');
+      if (!resultEl) return;
+      const content = searchKeywordRelated(kw);
+      resultEl.textContent = content || '관심 키워드를 입력한 뒤 검색 버튼을 눌러 주세요.';
+      addBtn.classList.toggle('hidden', !content || content.indexOf('진단을 먼저 제출해') >= 0);
+      addBtn.dataset.currentText = content || '';
+    });
+    var keywordAddReport = document.getElementById('keyword-add-report');
+    if (keywordAddReport) keywordAddReport.addEventListener('click', () => {
+      const t = document.getElementById('keyword-add-report').dataset.currentText;
+      const kw = (document.getElementById('keyword-input').value || '').trim();
+      if (t && (kw || t)) {
+        aiConsultationNotes.push('[관심 키워드: ' + (kw || '검색') + '] ' + (t.slice(0, 300) + (t.length > 300 ? '…' : '')));
+        document.getElementById('keyword-add-report').classList.add('hidden');
+        document.getElementById('keyword-result').textContent = '보고서에 추가되었습니다. PDF 다운로드 시 반영됩니다.';
+        document.getElementById('badge-step4').classList.remove('hidden');
+      }
+    });
+
+    (async () => {
+      var container = document.getElementById('questions-container');
+      if (container) container.innerHTML = '<p class="text-slate-500 py-6 text-center">문항 불러오는 중…</p>';
+      try {
+        const res = await fetch(API_BASE + '/api/me', { credentials: 'same-origin' });
+        if (!res.ok) { window.location.replace('/login?next=/dashboard'); return; }
+        const u = await res.json();
+        currentUserIsAdmin = !!u.is_admin;
+        currentUserEmail = (u.email || '').trim();
+        currentUserProfile = u;
+        var userNameEl = document.getElementById('user-name');
+        if (userNameEl) userNameEl.textContent = u.email || u.name || '';
+        var adminBadge = document.getElementById('admin-badge');
+        if (adminBadge) adminBadge.classList.toggle('hidden', !currentUserIsAdmin);
+        document.querySelectorAll('[data-indicator-formula-admin-only]').forEach(function(el) {
+          el.style.display = currentUserIsAdmin ? '' : 'none';
+        });
+        var step3Link = document.querySelector('.step-link[data-step="3"]');
+        if (step3Link) step3Link.style.display = 'none';
+        var lowerPanel = document.getElementById('lower-panel-eeg-viz');
+        if (lowerPanel) lowerPanel.classList.add('hidden');
+        try {
+          await loadSurveyItems('sequence', 0);
+        } catch (e) {
+          console.warn('설문 문항 로드 실패:', e);
+          items = [];
+          requiredSequences = [];
+        }
+      } catch (e) {
+        console.error('Dashboard /api/me 또는 초기화 오류:', e);
+      }
+      try {
+        renderQuestions();
+      } catch (e) {
+        console.error('renderQuestions 오류:', e);
+        if (container) container.innerHTML = '<p class="text-red-500 py-4 text-center">문항 표시 오류. 「간편 설문」 또는 「다시하기」를 눌러 주세요.</p>';
+      }
+      try {
+        if (typeof showStep === 'function') showStep(1);
+      } catch (e) {
+        console.error('showStep(1) 오류:', e);
+      }
+    })();
+    // 메뉴 클릭 위임: 실제 핸들러(__openSaveLoadModal 등) 등록 후 한 번만 등록
+    try { attachNavDelegation(); } catch (eNav) { console.error('attachNavDelegation 오류:', eNav); }
+      } catch (e3) {
+        console.error('doRestOfInit 오류:', e3);
+      }
+    }, 0);
+      } catch (e) {
+        console.error('Dashboard init error:', e);
+        alert('메뉴 버튼을 불러오는 중 오류가 났습니다. 새로고침 후 다시 시도해 주세요.');
+      }
+    }
+    // 위임에서 호출할 핸들러(initDashboard에서 __openSaveLoadModal 등으로 실제 구현 등록)
+    window._openSaveLoadModal = function() { if (typeof window.__openSaveLoadModal === 'function') window.__openSaveLoadModal(); };
+    window._openSurveyLoadModal = function() { if (typeof window.__openSurveyLoadModal === 'function') window.__openSurveyLoadModal(); };
+    window._runShortSurvey = function() { if (typeof window.__runShortSurvey === 'function') window.__runShortSurvey(); };
+    window._runRetryRandom = function() { if (typeof window.__runRetryRandom === 'function') window.__runRetryRandom(); };
+    function runInit() {
+      try {
+        initDashboard();
+      } catch (e) {
+        console.error('Dashboard init error:', e);
+        alert('메뉴 버튼을 불러오는 중 오류가 났습니다. 새로고침 후 다시 시도해 주세요.');
+      }
+    }
+    // 클릭 위임은 doRestOfInit 끝에서 등록 (실제 핸들러 등록 후에만 위임 동작 보장)
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runInit);
+    } else {
+      runInit();
+    }
+  </script>
+</body>
+</html>

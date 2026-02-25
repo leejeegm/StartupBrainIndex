@@ -1,0 +1,35 @@
+이미지에는 웹 클라이언트와 서버 간의 데이터 흐름을 설명하는 다이어그램이 있습니다. 각 구성 요소는 다음과 같습니다:
+
+1. **웹 클라이언트**:
+   - 요청: HTTP request
+   - 응답: HTTP response
+   - 사용되는 기술 (프론트 엔드): 
+     - javascript
+     - jquery
+     - vue.js
+     - angular
+     - react
+
+2. **웹 서버**:
+   - 웹 애플리케이션(Web app)이 여러 개 배치되어 있음.
+   - 웹 서버 소프트웨어 예시:
+     - Apache
+     - IIS
+     - Tomcat 등
+   - 백엔드 개발 언어 및 프레임워크 예시:
+     - jsp(spring)
+     - php
+     - node.js
+     - python(Django, flask)
+
+3. **DB 서버**:
+   - 커넥터를 통해 웹 서버와 연결됨.
+   - 사용되는 드라이버 예시:
+     - JDBC
+     - ODBC
+     - ADO 등
+   - 데이터베이스 예시:
+     - Oracle Database
+     - SqlServer 등
+
+이 다이어그램은 웹 기반 애플리케이션의 기본 아키텍처를 설명합니다.
