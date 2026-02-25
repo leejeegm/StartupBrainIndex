@@ -201,14 +201,37 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    name: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    occupation: Optional[str] = None
+    nationality: Optional[str] = None
+    sleep_hours: Optional[Any] = None  # str 또는 number (수면시간/레이블)
+    sleep_quality: Optional[str] = None
+    meal_habit: Optional[str] = None
+    bowel_habit: Optional[str] = None
+    exercise_habit: Optional[str] = None
 
 
 @app.post("/api/register")
 async def api_register(body: RegisterRequest):
-    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구."""
+    """회원 가입. 이메일·비밀번호·프로필(이름·성별·연령·직업·국적·수면·식사·배변·운동) 필수. 이메일 중복 시 400. DB 실패 시 503."""
     try:
         from user_storage import register
-        out = register(body.email.strip(), body.password)
+        out = register(
+            body.email.strip(),
+            body.password,
+            name=body.name,
+            gender=body.gender,
+            age=body.age,
+            occupation=body.occupation,
+            nationality=body.nationality,
+            sleep_hours=body.sleep_hours,
+            sleep_quality=body.sleep_quality,
+            meal_habit=body.meal_habit,
+            bowel_habit=body.bowel_habit,
+            exercise_habit=body.exercise_habit,
+        )
         return {"ok": True, "email": out["email"], "created_at": out["created_at"]}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
