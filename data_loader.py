@@ -1,28 +1,36 @@
 """
 CSV 파일 로딩 및 데이터 구조화 모듈
 """
+import os
 import pandas as pd
 from typing import List, Dict
 from models import SurveyItem, Domain
+
+# 프로젝트 루트 기준 경로 (Render 등 어떤 CWD에서도 동작)
+_ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+_DEFAULT_CSV = os.path.join(_ROOT_DIR, "survey_items.csv")
 
 
 class SurveyDataLoader:
     """설문 데이터 로더"""
     
-    def __init__(self, csv_path: str = "survey_items.csv"):
+    def __init__(self, csv_path: str = None):
         """
         Args:
-            csv_path: CSV 파일 경로
+            csv_path: CSV 파일 경로. None이면 프로젝트 루트의 survey_items.csv
         """
-        self.csv_path = csv_path
+        self.csv_path = csv_path or _DEFAULT_CSV
         self.df: pd.DataFrame = None
         self.items: List[SurveyItem] = []
         self._load_data()
     
     def _load_data(self):
         """CSV 파일 로드 및 구조화"""
-        # cp949 인코딩으로 읽기
-        self.df = pd.read_csv(self.csv_path, encoding='cp949')
+        # UTF-8 우선, 실패 시 cp949 (한국어 Windows 저장)
+        try:
+            self.df = pd.read_csv(self.csv_path, encoding='utf-8')
+        except UnicodeDecodeError:
+            self.df = pd.read_csv(self.csv_path, encoding='cp949')
         
         # 컬럼명 정리 (공백 제거)
         self.df.columns = self.df.columns.str.strip()
