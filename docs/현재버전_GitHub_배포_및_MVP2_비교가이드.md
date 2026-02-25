@@ -44,20 +44,16 @@ git push -u origin main
 
 ---
 
-### Step 3: 배포 테스트 (현재 버전)
+### Step 3: 배포 테스트 (현재 버전) — **Render 사용**
 
-FastAPI + Uvicorn 구조이므로 아래 중 하나로 배포하면 됩니다.
+배포는 **Render**로 진행합니다. (무료·안정성·가성비 기준)
 
-| 서비스 | 특징 | 참고 |
-|--------|------|------|
-| **Railway** | GitHub 연동, 자동 빌드, 무료 티어 | [railway.app](https://railway.app) |
-| **Render** | Web Service로 배포, 무료 티어 | [render.com](https://render.com) |
-| **Fly.io** | 글로벌 리전, CLI 배포 | [fly.io](https://fly.io) |
-
-**공통 준비**:
-- `requirements.txt` 있음 (의존성 명시)
-- 배포 시 **시작 명령**: `uvicorn main:app --host 0.0.0.0 --port $PORT` (Render/Railway는 `PORT` 환경변수 제공)
-- **환경 변수**: `SESSION_SECRET`, DB 접속 정보(MySQL/PostgreSQL 사용 시) 등은 대시보드에서 설정
+- **상세 절차**: [docs/Render_배포_가이드.md](Render_배포_가이드.md) 참고
+- **설정 요약**:
+  - **Build**: `pip install -r requirements.txt`
+  - **Start**: `uvicorn main:app --host 0.0.0.0 --port $PORT`
+  - **환경 변수**: `SESSION_SECRET`(필수), `DB_ENGINE`, `DB_NAME` (대시보드에서 설정)
+- 루트의 `render.yaml`은 Blueprint 사용 시 참고용입니다 (수동 설정만 해도 됨).
 
 **배포 후 확인**:
 - [ ] 루트 `/` 접속

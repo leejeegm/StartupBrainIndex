@@ -134,9 +134,13 @@
             </div>
             <div id="unanswered-list-box" class="hidden mb-4 p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-sm"></div>
             <div class="flex flex-wrap gap-3 items-center mb-4">
-              <button type="button" id="btn-short-survey" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">간편 설문 (하위요소당 2문항)</button>
-              <button type="button" id="btn-full-survey" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base hidden">전체 설문 (96문항)</button>
-              <button type="button" id="btn-retry-random" class="px-4 py-2 rounded-xl border border-primary-500 text-primary-600 hover:bg-primary-50 text-base">다시하기 (역량별 랜덤 제시)</button>
+              <span class="text-slate-600 text-sm font-medium mr-1">전체 설문:</span>
+              <button type="button" id="btn-full-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">전체 96문항</button>
+              <button type="button" id="btn-full-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">선택 71문항</button>
+              <span class="text-slate-600 text-sm font-medium mr-1 ml-2">간편 설문:</span>
+              <button type="button" id="btn-short-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">96문항 중 랜덤</button>
+              <button type="button" id="btn-short-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">71문항 중 랜덤</button>
+              <button type="button" id="btn-retry-random" class="px-4 py-2 rounded-xl border border-primary-500 text-primary-600 hover:bg-primary-50 text-base">다시하기 (역량별 랜덤)</button>
               <button type="button" id="btn-survey-load" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-base">불러오기</button>
               <button type="button" id="btn-survey-save-new" class="hidden px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-base">새로저장</button>
             </div>
@@ -567,8 +571,14 @@
       return map;
     }
 
-    async function loadSurveyItems(order, short) {
-      const url = API_BASE + '/items?order=' + (order || 'sequence') + '&short=' + (short || 0);
+    /** 현재 설문 모드: 'all'(전체 96) | 'selected'(선택 71). 제출 시 survey_mode로 전달 */
+    var currentSurveyMode = 'all';
+    var totalAll = 96;
+    var totalSelected = 71;
+
+    async function loadSurveyItems(order, short, mode) {
+      mode = mode || 'all';
+      const url = API_BASE + '/items?order=' + (order || 'sequence') + '&short=' + (short || 0) + '&mode=' + (mode === 'selected' ? 'selected' : 'all');
       const res = await fetch(url, { credentials: 'same-origin' });
       let data = {};
       try {
@@ -583,6 +593,9 @@
       }
       requiredSequences = Array.isArray(seqList) ? seqList : [];
       surveyOrder = order || 'sequence';
+      currentSurveyMode = (data.survey_mode === 'selected') ? 'selected' : 'all';
+      if (typeof data.total_all === 'number') totalAll = data.total_all;
+      if (typeof data.total_selected === 'number') totalSelected = data.total_selected;
       if (!res.ok && items.length === 0) throw new Error('문항 조회 실패: ' + res.status);
       return { items: items, requiredSequences: requiredSequences };
     }
@@ -958,9 +971,10 @@
           h3.textContent = domain;
           container.appendChild(h3);
         }
+        const isSelected = (item.비고 || '').trim() === '선택';
         const div = document.createElement('div');
         div.id = 'q-wrap-' + seq;
-        div.className = 'q-wrap bg-white rounded-xl p-4 border border-slate-100';
+        div.className = 'q-wrap bg-white rounded-xl p-4 border border-slate-100' + (isSelected ? ' ring-2 ring-red-500' : '');
         div.dataset.seq = String(seq);
         var safeText = (typeof escapeHtml === 'function' ? escapeHtml(String(text)) : String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'));
         div.innerHTML = '<p class="text-slate-700 mb-3 font-medium text-lg"><span class="text-primary-600 font-bold">' + seq + '.</span> ' + safeText + '</p><div class="flex flex-wrap gap-4" role="radiogroup">' +
@@ -989,7 +1003,15 @@
       const summary = document.getElementById('result-summary');
       const cards = document.getElementById('result-cards');
       const combined = data.통합지수_0_100 ?? (data.전체평균 != null ? (data.전체평균 - 1) / 4 * 100 : null);
-      summary.innerHTML = `<p class="text-lg">통합 지수: <strong class="text-primary-600 text-2xl">${combined != null ? Math.round(combined) : '—'}</strong> / 100</p><p class="text-slate-600 text-lg mt-2">${data.message || ''}</p>`;
+      var msgHtml = '<p class="text-lg">통합 지수: <strong class="text-primary-600 text-2xl">' + (combined != null ? Math.round(combined) : '—') + '</strong> / 100</p><p class="text-slate-600 text-lg mt-2">' + (data.message || '') + '</p>';
+      if (data.전체_사용된_문항수 != null || data.선택_사용된_문항수 != null) {
+        msgHtml += '<p class="text-slate-500 text-sm mt-2">';
+        if (data.전체_메시지) msgHtml += data.전체_메시지;
+        if (data.전체_메시지 && data.선택_메시지) msgHtml += ' ';
+        if (data.선택_메시지) msgHtml += data.선택_메시지;
+        msgHtml += '</p>';
+      }
+      summary.innerHTML = msgHtml;
       cards.innerHTML = '';
       const ordered = orderDomainsByFormal(data.영역별_통합점수 || data.영역별점수 || []);
       ordered.forEach(({ name, d }) => {
@@ -2083,20 +2105,34 @@
     var surveyLoadInProgress = false;
     function setSurveyLoadButtonsEnabled(enabled) {
       surveyLoadInProgress = !enabled;
-      var shortBtn = document.getElementById('btn-short-survey');
-      var fullBtn = document.getElementById('btn-full-survey');
-      var retryBtn = document.getElementById('btn-retry-random');
-      var loadBtn = document.getElementById('btn-survey-load');
-      [shortBtn, fullBtn, retryBtn, loadBtn].forEach(function(btn) {
+      var ids = ['btn-full-96', 'btn-full-71', 'btn-short-96', 'btn-short-71', 'btn-retry-random', 'btn-survey-load'];
+      var labels = { 'btn-full-96': '전체 96문항', 'btn-full-71': '선택 ' + totalSelected + '문항', 'btn-short-96': '96문항 중 랜덤', 'btn-short-71': totalSelected + '문항 중 랜덤', 'btn-retry-random': '다시하기 (역량별 랜덤)', 'btn-survey-load': '불러오기' };
+      ids.forEach(function(id) {
+        var btn = document.getElementById(id);
         if (!btn) return;
         btn.disabled = !enabled;
-        if (enabled) {
-          if (btn === shortBtn) btn.textContent = '간편 설문 (하위요소당 2문항)';
-          else if (btn === retryBtn) btn.textContent = '다시하기 (역량별 랜덤 제시)';
-          else if (btn === loadBtn) btn.textContent = '불러오기';
-          else if (btn === fullBtn) btn.textContent = '전체 설문 (96문항)';
-        }
+        if (enabled && labels[id]) btn.textContent = labels[id];
       });
+    }
+    async function runLoadSurvey(order, short, mode) {
+      if (surveyLoadInProgress) return;
+      setSurveyLoadButtonsEnabled(false);
+      try {
+        surveyDirty = false;
+        loadedSurveyId = null;
+        surveyType = (short === 1) ? 'short_random' : 'full';
+        var saveNewBtn = document.getElementById('btn-survey-save-new');
+        if (saveNewBtn) saveNewBtn.classList.add('hidden');
+        Object.keys(responses).forEach((k) => delete responses[k]);
+        await loadSurveyItems(order, short, mode);
+        renderQuestions();
+        document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
+        ensureUnansweredVisible();
+      } catch (e) {
+        alert('문항 불러오기 실패: ' + (e.message || e));
+      } finally {
+        setSurveyLoadButtonsEnabled(true);
+      }
     }
     async function runRetryRandom() {
       if (surveyLoadInProgress) return;
@@ -2110,7 +2146,7 @@
         var saveNewBtn = document.getElementById('btn-survey-save-new');
         if (saveNewBtn) saveNewBtn.classList.add('hidden');
         Object.keys(responses).forEach((k) => delete responses[k]);
-        await loadSurveyItems('random_domain', 0);
+        await loadSurveyItems('random_domain', 0, currentSurveyMode);
         renderQuestions();
         document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
         ensureUnansweredVisible();
@@ -2124,60 +2160,12 @@
     var btnRetryRandom = document.getElementById('btn-retry-random');
     if (btnRetryRandom) btnRetryRandom.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runRetryRandom(); });
 
-    async function runShortSurvey() {
-      if (surveyLoadInProgress) return;
-      setSurveyLoadButtonsEnabled(false);
-      var shortBtn = document.getElementById('btn-short-survey');
-      if (shortBtn) shortBtn.textContent = '불러오는 중…';
-      try {
-        surveyDirty = false;
-        loadedSurveyId = null;
-        surveyType = 'short_random';
-        var saveNewBtn = document.getElementById('btn-survey-save-new');
-        if (saveNewBtn) saveNewBtn.classList.add('hidden');
-        Object.keys(responses).forEach((k) => delete responses[k]);
-        await loadSurveyItems('sequence', 1);
-        renderQuestions();
-        var sBtn = document.getElementById('btn-short-survey');
-        var fullBtn = document.getElementById('btn-full-survey');
-        if (sBtn) sBtn.classList.add('hidden');
-        if (fullBtn) fullBtn.classList.remove('hidden');
-      } catch (e) {
-        alert('문항 불러오기 실패: ' + (e.message || e));
-      } finally {
-        setSurveyLoadButtonsEnabled(true);
-      }
-    }
-    window.__runShortSurvey = runShortSurvey;
-    var btnShortSurvey = document.getElementById('btn-short-survey');
-    if (btnShortSurvey) btnShortSurvey.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runShortSurvey(); });
+    document.getElementById('btn-full-96') && document.getElementById('btn-full-96').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 0, 'all'); });
+    document.getElementById('btn-full-71') && document.getElementById('btn-full-71').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 0, 'selected'); });
+    document.getElementById('btn-short-96') && document.getElementById('btn-short-96').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 1, 'all'); });
+    document.getElementById('btn-short-71') && document.getElementById('btn-short-71').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 1, 'selected'); });
 
-    var btnFullSurvey = document.getElementById('btn-full-survey');
-    if (btnFullSurvey) btnFullSurvey.addEventListener('click', async function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (surveyLoadInProgress) return;
-      setSurveyLoadButtonsEnabled(false);
-      btnFullSurvey.textContent = '불러오는 중…';
-      try {
-        surveyDirty = false;
-        loadedSurveyId = null;
-        surveyType = 'full';
-        var saveNewBtn = document.getElementById('btn-survey-save-new');
-        if (saveNewBtn) saveNewBtn.classList.add('hidden');
-        Object.keys(responses).forEach((k) => delete responses[k]);
-        await loadSurveyItems('sequence', 0);
-        renderQuestions();
-        var shortBtn = document.getElementById('btn-short-survey');
-        var fullBtn = document.getElementById('btn-full-survey');
-        if (fullBtn) fullBtn.classList.add('hidden');
-        if (shortBtn) shortBtn.classList.remove('hidden');
-      } catch (err) {
-        alert('문항 불러오기 실패: ' + (err.message || err));
-      } finally {
-        setSurveyLoadButtonsEnabled(true);
-      }
-    });
+    window.__runShortSurvey = function() { runLoadSurvey('sequence', 1, currentSurveyMode); };
 
     const submitBtn = document.getElementById('submit-survey-btn');
     if (submitBtn) {
@@ -2203,7 +2191,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
-        body: JSON.stringify({ responses: responses, excluded_sequences: excluded })
+        body: JSON.stringify({ responses: responses, excluded_sequences: excluded, survey_mode: currentSurveyMode })
       }).then(function(res) { return res.json().then(function(data) { return { res: res, data: data }; }); })
         .then(function(r) {
           if (!r.res.ok) throw new Error(r.data.detail || '제출 실패');

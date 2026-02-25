@@ -181,17 +181,45 @@ def get_user_detail_for_admin(email: str) -> Optional[Dict[str, Any]]:
 
 
 def check_email_for_register(email: str) -> Dict[str, Any]:
-    """가입 전 이메일 검사: 형식·가상 여부·중복. 반환: valid(형식/가상 통과), available(미가입), message(안내문)."""
+    """가입 전 이메일 검사: 형식·가상 여부·중복.
+    반환: valid, available, message, reason(ok|duplicate|format_invalid|disposable|empty).
+    정상여부 버튼 클릭 시: 가입 가능합니다 / 중복 이메일입니다 / 정상 이메일인지 확인해 주세요.
+    가입 여부는 로그인·아이디/비밀번호 찾기로 확인 가능."""
     e = (email or "").strip().lower()
     if not e:
-        return {"valid": False, "available": False, "message": "이메일을 입력해 주세요."}
+        return {
+            "valid": False,
+            "available": False,
+            "reason": "empty",
+            "message": "이메일을 입력해 주세요.",
+        }
     try:
         _validate_email(e)
     except ValueError as err:
-        return {"valid": False, "available": False, "message": str(err)}
+        msg = str(err)
+        if "형식" in msg or "올바른" in msg:
+            reason = "format_invalid"
+            message = "올바른 이메일 형식이 아닙니다. 예: name@example.com"
+        elif "일회용" in msg or "가상" in msg:
+            reason = "disposable"
+            message = "일회용·가상 이메일은 사용할 수 없습니다. 실제 사용 중인 이메일을 입력해 주세요."
+        else:
+            reason = "format_invalid"
+            message = "정상 이메일인지 확인해 주세요. " + msg
+        return {"valid": False, "available": False, "reason": reason, "message": message}
     if get_user_by_email(e):
-        return {"valid": True, "available": False, "message": "이미 등록된 이메일입니다. 로그인하거나 다른 주소를 사용하세요."}
-    return {"valid": True, "available": True, "message": "사용 가능한 이메일입니다."}
+        return {
+            "valid": True,
+            "available": False,
+            "reason": "duplicate",
+            "message": "중복 이메일입니다. 로그인 또는 아이디/비밀번호 찾기로 확인하세요.",
+        }
+    return {
+        "valid": True,
+        "available": True,
+        "reason": "ok",
+        "message": "가입 가능합니다.",
+    }
 
 
 def verify_password(email: str, password: str) -> bool:

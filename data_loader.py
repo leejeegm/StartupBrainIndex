@@ -45,9 +45,13 @@ class SurveyDataLoader:
         
         # SurveyItem 객체 리스트 생성
         self.items = []
+        has_비고 = '비고' in self.df.columns
         for idx, row in self.df.iterrows():
             try:
-                # 컬럼 인덱스로 접근
+                # 컬럼 인덱스로 접근 (필수 컬럼), 추가 컬럼은 이름으로
+                비고_val = None
+                if has_비고 and ('비고' in row.index) and pd.notna(row.get('비고')) and str(row['비고']).strip():
+                    비고_val = str(row['비고']).strip()
                 item = SurveyItem(
                     전체순번=int(row.iloc[5]),  # 전체순번 (인덱스 5)
                     영역=str(row.iloc[0]).strip().replace('\n', ' '),  # 영역 (인덱스 0)
@@ -55,7 +59,8 @@ class SurveyDataLoader:
                     하위요소=str(row.iloc[2]).strip().replace('\n', ' '),  # 하위요소 (인덱스 2)
                     하위요소순번=int(row.iloc[3]),  # 하위요소순번 (인덱스 3)
                     문항보정=str(row.iloc[6]).strip(),  # 문항(보정) (인덱스 6)
-                    예시문항=int(row.iloc[7])  # 예시문항 (인덱스 7)
+                    예시문항=int(row.iloc[7]),  # 예시문항 (인덱스 7)
+                    비고=비고_val
                 )
                 self.items.append(item)
             except (KeyError, ValueError, IndexError) as e:
@@ -82,7 +87,15 @@ class SurveyDataLoader:
     def get_all_sequences(self) -> List[int]:
         """모든 전체순번 리스트 반환"""
         return [item.전체순번 for item in self.items]
-    
+
+    def get_selected_sequences(self) -> List[int]:
+        """비고가 '선택'인 문항의 전체순번 리스트 (선택 71문항 등)."""
+        return [item.전체순번 for item in self.items if (getattr(item, "비고", None) or "").strip() == "선택"]
+
+    def get_excluded_sequences(self) -> List[int]:
+        """비고가 '제외'인 문항의 전체순번 리스트."""
+        return [item.전체순번 for item in self.items if (getattr(item, "비고", None) or "").strip() == "제외"]
+
     def validate_sequences(self) -> Dict:
         """문항 순번 검증"""
         sequences = self.get_all_sequences()

@@ -59,6 +59,7 @@ GitHub에 올린 현재 버전(SBI FastAPI)을 **Render**에서 무료 Web Servi
 **참고**:
 - 무료 플랜에서는 디스크가 **휘발성**이라, 재배포·재시작 시 SQLite 데이터가 **사라질 수 있음**. 테스트용으로만 사용 권장.
 - MySQL 등 외부 DB를 쓰면 `DB_ENGINE=mysql`, `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` 를 추가해 설정.
+- **배포 DB가 비어 있을 때**: 로컬 SQLite(sbi.db) 데이터를 한 번에 올리려면 [SQLite 데이터 업로드 가이드](./SQLite_데이터_업로드_가이드.md)를 참고해 `upload_sqlite_to_remote.py` 를 로컬에서 실행하세요. (대상은 Postgres/Supabase 또는 MySQL)
 
 ---
 

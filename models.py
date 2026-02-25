@@ -16,6 +16,7 @@ class SurveyItem:
     하위요소순번: int
     문항보정: str
     예시문항: int  # 테스트 응답 (1~5점)
+    비고: Optional[str] = None  # CSV 추가 컬럼 (있으면 로드)
 
 
 @dataclass

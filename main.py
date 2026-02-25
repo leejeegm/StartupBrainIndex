@@ -2,10 +2,8 @@
 FastAPI 메인 애플리케이션
 """
 import os
-import sys
 import secrets
 import random
-import traceback
 from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
@@ -43,14 +41,9 @@ async def allow_mobile_and_all_devices(request: Request, call_next):
 static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-# 전역 데이터 로더 및 채점 엔진 초기화 (실패 시 로그에 traceback 출력 후 재발생)
-try:
-    data_loader = SurveyDataLoader()
-    scoring_engine = ScoringEngine(data_loader)
-except Exception as e:
-    print("[SBI startup error]", file=sys.stderr)
-    traceback.print_exc(file=sys.stderr)
-    raise
+# 전역 데이터 로더 및 채점 엔진 초기화
+data_loader = SurveyDataLoader()
+scoring_engine = ScoringEngine(data_loader)
 
 
 def get_current_user(request: Request) -> Optional[Dict]:
@@ -150,6 +143,7 @@ class AnalyzeSBIRequest(BaseModel):
     """설문 응답만 받아 가상 뇌파와 결합 분석 (동일 스키마)"""
     responses: Dict[int, int] = Field(..., description="설문 응답 {전체순번: 1~5점}")
     excluded_sequences: Optional[List[int]] = Field(default=[], description="제외 문항 순번")
+    survey_mode: Optional[str] = Field(default="all", description="all=전체 96문항, selected=선택 71문항 기준")
     customer_name: Optional[str] = Field(default="고객", description="할인권 이메일 수신자 이름 (점수 이하 시 자동 발송용)")
 
     @field_validator("responses", mode="before")
@@ -191,6 +185,12 @@ class AnalyzeSBIResponse(BaseModel):
     message: str
     리포트: Optional[Dict[str, Any]] = None  # concept.md 용어·로직 반영 해석
     할인권_이메일: Optional[Dict[str, Any]] = None  # 점수 이하 시: 발송_대상, 이메일_HTML, 할인코드, 추천_블로그, 추천_유튜브
+    # 선택 문항 구분: 총 응답수·분석 구분
+    survey_mode: Optional[str] = None
+    선택_사용된_문항수: Optional[int] = None
+    선택_메시지: Optional[str] = None
+    전체_사용된_문항수: Optional[int] = None
+    전체_메시지: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -1341,6 +1341,23 @@ async def analyze_sbi(body: AnalyzeSBIRequest):
         report = generate_report(combined.영역별_통합점수, combined.inconsistency_flag)
         report_dict = report_to_dict(report)
 
+        # 선택 문항 기준 / 전체 문항 기준 총 응답수 구분 (분석 결과 안내용)
+        excluded_seqs = data_loader.get_excluded_sequences()
+        excluded_for_selected = list(excluded_seqs) + [s for s in range(1, 97) if s not in body.responses]
+        result_selected = scoring_engine.calculate_score(responses=body.responses, excluded_sequences=excluded_for_selected)
+        선택_사용된_문항수 = result_selected.사용된_문항수 if result_selected.사용된_문항수 > 0 else None
+        선택_메시지 = f"선택 문항 기준: 총 {result_selected.사용된_문항수}개 문항으로 계산" if 선택_사용된_문항수 else None
+        excluded_for_all = [s for s in range(1, 97) if s not in body.responses]
+        result_all = scoring_engine.calculate_score(responses=body.responses, excluded_sequences=excluded_for_all)
+        전체_사용된_문항수 = result_all.사용된_문항수 if result_all.사용된_문항수 > 0 else None
+        전체_메시지 = f"전체 문항 기준: 총 {result_all.사용된_문항수}개 문항으로 계산" if 전체_사용된_문항수 else None
+        survey_mode = (body.survey_mode or "all").strip().lower() if body.survey_mode else None
+        msg_combined = combined.message
+        if 전체_메시지 and 선택_메시지:
+            msg_combined = f"{전체_메시지}. {선택_메시지}."
+        elif 선택_메시지:
+            msg_combined = f"{combined.message} ({선택_메시지})"
+
         # 진단 점수 이하 시 1:1 상담 할인권 이메일 템플릿 생성 (블로그/유튜브 추천 + 할인코드)
         customer_name = (body.customer_name or "고객").strip() or "고객"
         coupon_payload = build_coupon_email_for_result(
@@ -1369,9 +1386,14 @@ async def analyze_sbi(body: AnalyzeSBIRequest):
             inconsistency_flag=combined.inconsistency_flag,
             사용된_문항수=combined.사용된_문항수,
             제외된_순번=combined.제외된_순번,
-            message=combined.message,
+            message=msg_combined,
             리포트=report_dict,
             할인권_이메일=할인권_이메일,
+            survey_mode=survey_mode if survey_mode in ("all", "selected") else None,
+            선택_사용된_문항수=선택_사용된_문항수,
+            선택_메시지=선택_메시지,
+            전체_사용된_문항수=전체_사용된_문항수,
+            전체_메시지=전체_메시지,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"SBI 통합 분석 오류: {str(e)}")

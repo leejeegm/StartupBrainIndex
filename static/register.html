@@ -37,6 +37,8 @@
           <button type="button" id="btn-email-check" class="shrink-0 px-3 py-2 rounded-xl border border-violet-300 text-violet-700 hover:bg-violet-50 text-sm">정상여부</button>
         </div>
         <p id="email-check-msg" class="text-sm mt-1 hidden"></p>
+        <p id="email-check-criteria" class="text-slate-500 text-xs mt-1">정상여부 클릭 시: <strong>가입 가능합니다</strong> / <strong>중복 이메일입니다</strong> / 정상 이메일인지 확인해 주세요(형식·일회용 이메일 불가). 가입 여부는 로그인·아이디/비밀번호 찾기로 확인할 수 있습니다.</p>
+        <p id="email-find-hint" class="text-slate-500 text-xs mt-0.5">이미 가입한 이메일인지 확인하려면 <a href="/login" class="text-violet-600 hover:underline">로그인</a> 또는 <a href="/login#find" class="text-violet-600 hover:underline">아이디/비밀번호 찾기</a>를 이용하세요.</p>
       </div>
       <div>
         <label for="password" class="block text-slate-700 font-medium mb-1">비밀번호 (4자 이상) <span class="required-star">*</span></label>
@@ -224,7 +226,9 @@
           selectOption: '선택',
           customNationality: '직접 입력',
           customNationalityPlaceholder: '국적 직접 입력',
-          emailCheckBtn: '정상여부'
+          emailCheckBtn: '정상여부',
+          emailCriteria: '정상여부 클릭 시: 가입 가능합니다 / 중복 이메일입니다 / 정상 이메일인지 확인해 주세요. 가입 여부는 로그인·아이디/비밀번호 찾기로 확인할 수 있습니다.',
+          emailFindHint: '이미 가입한 이메일인지 확인하려면 로그인 또는 아이디/비밀번호 찾기를 이용하세요.'
         },
         en: {
           title: 'Sign Up',
@@ -249,7 +253,9 @@
           selectOption: 'Select',
           customNationality: 'Other (type)',
           customNationalityPlaceholder: 'Enter nationality',
-          emailCheckBtn: 'Check'
+          emailCheckBtn: 'Check',
+          emailCriteria: 'Click Check: "Available" / "Email already registered" / "Please enter a valid email". Use Login or Find ID/Password to verify.',
+          emailFindHint: 'To check if you already have an account: use Login or Find ID / Password.'
         }
       };
       function applyRegisterLang(lang) {
@@ -275,6 +281,12 @@
           if (btn) btn.textContent = t.submitBtn;
         }
         if (el('btn-email-check')) el('btn-email-check').textContent = t.emailCheckBtn;
+        if (el('email-check-criteria')) el('email-check-criteria').textContent = t.emailCriteria || '';
+        var findHint = el('email-find-hint');
+        if (findHint) {
+          if (lang === 'en') findHint.innerHTML = 'To check if you already have an account: <a href="/login" class="text-violet-600 hover:underline">Login</a> or <a href="/login#find" class="text-violet-600 hover:underline">Find ID / Password</a>.';
+          else findHint.innerHTML = '이미 가입한 이메일인지 확인하려면 <a href="/login" class="text-violet-600 hover:underline">로그인</a> 또는 <a href="/login#find" class="text-violet-600 hover:underline">아이디/비밀번호 찾기</a>를 이용하세요.';
+        }
         if (el('register-back-link-a')) el('register-back-link-a').textContent = t.backLink;
         if (el('btn-goto-top')) el('btn-goto-top').textContent = t.gotoTop;
         if (el('nationality-custom')) el('nationality-custom').placeholder = t.customNationalityPlaceholder;
@@ -315,15 +327,19 @@
           .then(function(r) { return r.json(); })
           .then(function(data) {
             var isOk = data.valid && data.available;
+            var reason = data.reason || '';
             emailMsg.classList.remove('hidden');
-            emailMsg.classList.remove('text-green-600', 'text-red-600');
+            emailMsg.classList.remove('text-green-600', 'text-amber-600', 'text-red-600');
+            emailMsg.textContent = data.message || (isOk ? '가입 가능합니다.' : '정상 이메일인지 확인해 주세요.');
             if (isOk) {
-              emailMsg.textContent = '정상입니다. ' + (data.message || '사용 가능한 이메일입니다.');
               emailMsg.classList.add('text-green-600');
               emailCheckedValue = v;
               emailCheckedOk = true;
+            } else if (reason === 'duplicate') {
+              emailMsg.classList.add('text-amber-600');
+              emailCheckedValue = v;
+              emailCheckedOk = false;
             } else {
-              emailMsg.textContent = '정상이 아닙니다. ' + (data.message || '이메일을 확인해 주세요.');
               emailMsg.classList.add('text-red-600');
               emailCheckedValue = v;
               emailCheckedOk = false;
@@ -391,7 +407,7 @@
         var checkRes = await fetch('/api/check-email?email=' + encodeURIComponent(emailVal));
         var checkData = await checkRes.json();
         if (!checkData.valid || !checkData.available) {
-          err.textContent = checkData.message || '이메일을 확인해 주세요. (형식·중복·가상 이메일 불가)';
+          err.textContent = checkData.message || '이메일 정상여부를 확인해 주세요. 가입 가능 / 중복 이메일 / 형식·일회용 이메일은 로그인·아이디/비밀번호 찾기로 확인할 수 있습니다.';
           err.classList.remove('hidden');
           return;
         }

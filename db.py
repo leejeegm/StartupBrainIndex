@@ -1,8 +1,9 @@
 """
-DB 연결 (MySQL 또는 SQLite).
-- engine: "mysql"(기본) | "sqlite" (db_config.json 또는 환경변수 DB_ENGINE)
+DB 연결 (MySQL, SQLite, PostgreSQL/Supabase).
+- engine: "mysql"(기본) | "sqlite" | "postgres"
 - MySQL: 환경변수 / db_config.json 의 host, user, password, database 사용.
-- SQLite: MySQL 연결이 불가한 환경(닷홈 무료 등)에서 사용. database 경로에 .db 파일 생성.
+- SQLite: MySQL 연결이 불가한 환경에서 사용. database 경로에 .db 파일 생성.
+- postgres: Supabase 등. 환경변수 DATABASE_URL 또는 SUPABASE_DB_URL (postgresql://...)
 """
 import os
 import json
@@ -124,10 +125,13 @@ def _load_db_config() -> dict:
 
 _raw_config = _load_db_config()
 DB_ENGINE = (_raw_config.get("engine") or "mysql").strip().lower()
-if DB_ENGINE not in ("mysql", "sqlite"):
+if DB_ENGINE not in ("mysql", "sqlite", "postgres"):
     DB_ENGINE = "mysql"
 
-# MySQL용 설정 (sqlite일 때는 사용 안 함)
+# PostgreSQL (Supabase): DATABASE_URL 또는 SUPABASE_DB_URL
+DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL") or ""
+
+# MySQL용 설정 (sqlite/postgres일 때는 사용 안 함)
 import pymysql
 DB_CONFIG = {
     "host": _raw_config["host"],
@@ -172,12 +176,27 @@ def _sqlite_row_to_dict(row: sqlite3.Row) -> dict:
 
 @contextmanager
 def get_conn():
-    """DB 연결 컨텍스트. MySQL 또는 SQLite."""
+    """DB 연결 컨텍스트. MySQL, SQLite, 또는 PostgreSQL(Supabase)."""
     if DB_ENGINE == "sqlite":
         conn = sqlite3.connect(SQLITE_DB_PATH)
         conn.row_factory = sqlite3.Row
         try:
             _init_sqlite(conn)
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+    elif DB_ENGINE == "postgres":
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        url = DATABASE_URL
+        if url.startswith("postgres://"):
+            url = "postgresql://" + url[11:]
+        conn = psycopg2.connect(url, cursor_factory=RealDictCursor)
+        try:
             yield conn
             conn.commit()
         except Exception:
@@ -210,6 +229,10 @@ def execute_one(conn, sql: str, args: Optional[Tuple] = None) -> Optional[dict]:
         cur = conn.execute(sql, args)
         row = cur.fetchone()
         return _sqlite_row_to_dict(row)
+    if DB_ENGINE == "postgres":
+        with conn.cursor() as cur:
+            cur.execute(sql, args)
+            return cur.fetchone()
     with conn.cursor() as cur:
         cur.execute(sql, args)
         return cur.fetchone()
@@ -222,6 +245,10 @@ def execute_all(conn, sql: str, args: Optional[Tuple] = None) -> List[dict]:
         sql = _convert_sql_for_sqlite(sql)
         cur = conn.execute(sql, args)
         return [_sqlite_row_to_dict(row) for row in cur.fetchall()]
+    if DB_ENGINE == "postgres":
+        with conn.cursor() as cur:
+            cur.execute(sql, args)
+            return cur.fetchall()
     with conn.cursor() as cur:
         cur.execute(sql, args)
         return cur.fetchall()
@@ -233,6 +260,12 @@ def execute_insert(conn, sql: str, args: Tuple) -> int:
         sql = _convert_sql_for_sqlite(sql)
         cur = conn.execute(sql, args)
         return cur.lastrowid
+    if DB_ENGINE == "postgres":
+        with conn.cursor() as cur:
+            cur.execute(sql, args)
+            cur.execute("SELECT lastval()")
+            row = cur.fetchone()
+            return int(row["lastval"]) if row else 0
     with conn.cursor() as cur:
         cur.execute(sql, args)
         return cur.lastrowid
@@ -244,6 +277,10 @@ def execute_update_delete(conn, sql: str, args: Tuple) -> int:
         sql = _convert_sql_for_sqlite(sql)
         cur = conn.execute(sql, args)
         return cur.rowcount
+    if DB_ENGINE == "postgres":
+        with conn.cursor() as cur:
+            cur.execute(sql, args)
+            return cur.rowcount
     with conn.cursor() as cur:
         cur.execute(sql, args)
         return cur.rowcount
