@@ -4,7 +4,7 @@ FastAPI 메인 애플리케이션
 import os
 import secrets
 import random
-from fastapi import FastAPI, HTTPException, Request, Depends, Form, Query
+from fastapi import FastAPI, HTTPException, Request, Depends, Form
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Optional, Any
@@ -143,7 +143,6 @@ class AnalyzeSBIRequest(BaseModel):
     """설문 응답만 받아 가상 뇌파와 결합 분석 (동일 스키마)"""
     responses: Dict[int, int] = Field(..., description="설문 응답 {전체순번: 1~5점}")
     excluded_sequences: Optional[List[int]] = Field(default=[], description="제외 문항 순번")
-    survey_mode: Optional[str] = Field(default="all", description="all=전체 96문항, selected=선택 71문항 기준")
     customer_name: Optional[str] = Field(default="고객", description="할인권 이메일 수신자 이름 (점수 이하 시 자동 발송용)")
 
     @field_validator("responses", mode="before")
@@ -185,12 +184,6 @@ class AnalyzeSBIResponse(BaseModel):
     message: str
     리포트: Optional[Dict[str, Any]] = None  # concept.md 용어·로직 반영 해석
     할인권_이메일: Optional[Dict[str, Any]] = None  # 점수 이하 시: 발송_대상, 이메일_HTML, 할인코드, 추천_블로그, 추천_유튜브
-    # 선택 문항 구분: 총 응답수·분석 구분
-    survey_mode: Optional[str] = None
-    선택_사용된_문항수: Optional[int] = None
-    선택_메시지: Optional[str] = None
-    전체_사용된_문항수: Optional[int] = None
-    전체_메시지: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
@@ -201,37 +194,14 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    name: Optional[str] = None
-    gender: Optional[str] = None
-    age: Optional[int] = None
-    occupation: Optional[str] = None
-    nationality: Optional[str] = None
-    sleep_hours: Optional[Any] = None  # str 또는 number (수면시간/레이블)
-    sleep_quality: Optional[str] = None
-    meal_habit: Optional[str] = None
-    bowel_habit: Optional[str] = None
-    exercise_habit: Optional[str] = None
 
 
 @app.post("/api/register")
 async def api_register(body: RegisterRequest):
-    """회원 가입. 이메일·비밀번호·프로필(이름·성별·연령·직업·국적·수면·식사·배변·운동) 필수. 이메일 중복 시 400. DB 실패 시 503."""
+    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구."""
     try:
         from user_storage import register
-        out = register(
-            body.email.strip(),
-            body.password,
-            name=body.name,
-            gender=body.gender,
-            age=body.age,
-            occupation=body.occupation,
-            nationality=body.nationality,
-            sleep_hours=body.sleep_hours,
-            sleep_quality=body.sleep_quality,
-            meal_habit=body.meal_habit,
-            bowel_habit=body.bowel_habit,
-            exercise_habit=body.exercise_habit,
-        )
+        out = register(body.email.strip(), body.password)
         return {"ok": True, "email": out["email"], "created_at": out["created_at"]}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -264,22 +234,6 @@ async def api_logout(request: Request):
     """로그아웃 후 로그인 페이지로 리다이렉트"""
     request.session.clear()
     return RedirectResponse(url="/login", status_code=302)
-
-
-@app.get("/api/check-email")
-async def api_check_email(email: Optional[str] = Query(None)):
-    """회원가입 전 이메일 검사: 형식·일회용 도메인·중복. valid, available, message, reason 반환. DB 오류 시에도 JSON으로 응답해 프론트에서 정상/경고 구분 가능."""
-    try:
-        from user_storage import check_email_for_register
-        return check_email_for_register(email or "")
-    except Exception as e:
-        # DB 연결 실패 등: 200으로 응답하되 available=False, 서버 점검 안내 (신규 이메일인데 경고로 보이지 않도록)
-        return {
-            "valid": False,
-            "available": False,
-            "reason": "error",
-            "message": "일시적으로 확인할 수 없습니다. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.",
-        }
 
 
 @app.get("/api/me")
@@ -1181,15 +1135,23 @@ def _item_to_dict(item) -> dict:
 
 
 @app.get("/items")
-async def get_items(order: Optional[str] = "sequence", short: Optional[int] = 0):
+async def get_items(
+    order: Optional[str] = "sequence",
+    short: Optional[int] = 0,
+    mode: Optional[str] = "all",
+):
     """
     문항 목록 조회.
     - order: sequence(번호순, 기본) | random_domain(역량별 랜덤)
-    - short: 0(전체) | 1(간편 설문: 하위요소당 2문항 랜덤)
+    - short: 0(전체) | 1(간편 설문: 하위요소당 1문항 랜덤, 결과는 번호순으로 연동)
+    - mode: all(전체 96문항) | selected(선택 71문항)
     """
     raw = list(data_loader.items)
+    if (mode or "").strip().lower() == "selected":
+        selected_set = set(data_loader.get_selected_sequences())
+        raw = [i for i in raw if i.전체순번 in selected_set]
     if short == 1:
-        # 하위요소(영역+하위역량+하위요소)별로 그룹, 그룹당 2문항 랜덤
+        # 하위요소(영역+하위역량+하위요소)별로 그룹, 그룹당 1문항 랜덤 → 번호순 정렬
         key_fn = lambda i: (i.영역, i.하위역량, i.하위요소)
         groups: Dict[tuple, List] = {}
         for item in raw:
@@ -1199,17 +1161,20 @@ async def get_items(order: Optional[str] = "sequence", short: Optional[int] = 0)
             groups[k].append(item)
         chosen = []
         for group_items in groups.values():
-            if len(group_items) <= 2:
+            if len(group_items) <= 1:
                 chosen.extend(group_items)
             else:
-                chosen.extend(random.sample(group_items, 2))
-        chosen.sort(key=lambda x: (x.영역, x.하위역량, x.하위요소, x.전체순번))
+                chosen.append(random.choice(group_items))
+        chosen.sort(key=lambda x: x.전체순번)
         items_data = [_item_to_dict(i) for i in chosen]
         required_sequences = [i["전체순번"] for i in items_data]
         return {
             "total_items": len(items_data),
             "items": items_data,
             "required_sequences": required_sequences,
+            "survey_mode": "selected" if (mode or "").strip().lower() == "selected" else "all",
+            "total_all": 96,
+            "total_selected": len(data_loader.get_selected_sequences()),
         }
     if order == "random_domain":
         by_domain: Dict[str, List] = {}
@@ -1227,10 +1192,16 @@ async def get_items(order: Optional[str] = "sequence", short: Optional[int] = 0)
             out.extend(lst)
         items_data = [_item_to_dict(i) for i in out]
     else:
+        # 번호순(전체순번)으로 정렬 — 결과 분석과 동일 순서로 연동
         items_data = [_item_to_dict(i) for i in sorted(raw, key=lambda x: x.전체순번)]
+    required_sequences = [i["전체순번"] for i in items_data]
     return {
         "total_items": len(items_data),
         "items": items_data,
+        "required_sequences": required_sequences,
+        "survey_mode": "selected" if (mode or "").strip().lower() == "selected" else "all",
+        "total_all": 96,
+        "total_selected": len(data_loader.get_selected_sequences()),
     }
 
 
@@ -1380,23 +1351,6 @@ async def analyze_sbi(body: AnalyzeSBIRequest):
         report = generate_report(combined.영역별_통합점수, combined.inconsistency_flag)
         report_dict = report_to_dict(report)
 
-        # 선택 문항 기준 / 전체 문항 기준 총 응답수 구분 (분석 결과 안내용)
-        excluded_seqs = data_loader.get_excluded_sequences()
-        excluded_for_selected = list(excluded_seqs) + [s for s in range(1, 97) if s not in body.responses]
-        result_selected = scoring_engine.calculate_score(responses=body.responses, excluded_sequences=excluded_for_selected)
-        선택_사용된_문항수 = result_selected.사용된_문항수 if result_selected.사용된_문항수 > 0 else None
-        선택_메시지 = f"선택 문항 기준: 총 {result_selected.사용된_문항수}개 문항으로 계산" if 선택_사용된_문항수 else None
-        excluded_for_all = [s for s in range(1, 97) if s not in body.responses]
-        result_all = scoring_engine.calculate_score(responses=body.responses, excluded_sequences=excluded_for_all)
-        전체_사용된_문항수 = result_all.사용된_문항수 if result_all.사용된_문항수 > 0 else None
-        전체_메시지 = f"전체 문항 기준: 총 {result_all.사용된_문항수}개 문항으로 계산" if 전체_사용된_문항수 else None
-        survey_mode = (body.survey_mode or "all").strip().lower() if body.survey_mode else None
-        msg_combined = combined.message
-        if 전체_메시지 and 선택_메시지:
-            msg_combined = f"{전체_메시지}. {선택_메시지}."
-        elif 선택_메시지:
-            msg_combined = f"{combined.message} ({선택_메시지})"
-
         # 진단 점수 이하 시 1:1 상담 할인권 이메일 템플릿 생성 (블로그/유튜브 추천 + 할인코드)
         customer_name = (body.customer_name or "고객").strip() or "고객"
         coupon_payload = build_coupon_email_for_result(
@@ -1425,14 +1379,9 @@ async def analyze_sbi(body: AnalyzeSBIRequest):
             inconsistency_flag=combined.inconsistency_flag,
             사용된_문항수=combined.사용된_문항수,
             제외된_순번=combined.제외된_순번,
-            message=msg_combined,
+            message=combined.message,
             리포트=report_dict,
             할인권_이메일=할인권_이메일,
-            survey_mode=survey_mode if survey_mode in ("all", "selected") else None,
-            선택_사용된_문항수=선택_사용된_문항수,
-            선택_메시지=선택_메시지,
-            전체_사용된_문항수=전체_사용된_문항수,
-            전체_메시지=전체_메시지,
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"SBI 통합 분석 오류: {str(e)}")

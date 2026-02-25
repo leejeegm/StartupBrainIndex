@@ -77,8 +77,8 @@
       <nav class="space-y-1 sm:space-y-2">
         <a href="#" data-step="1" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-1" class="hidden sm:inline">Step 1: 설문 진단</span><span class="sm:hidden font-bold">1</span><span id="badge-step1" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
         <a href="#" data-step="2" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-2" class="hidden sm:inline">Step 2: 결과 / PDF</span><span class="sm:hidden font-bold">2</span><span id="badge-step2" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
-        <a href="#" data-step="3" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-3" class="hidden sm:inline">Step 3: 뇌파·시각화</span><span class="sm:hidden font-bold">3</span><span id="badge-step3" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
-        <a href="#" data-step="4" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-4" class="hidden sm:inline">Step 4: AI 상담</span><span class="sm:hidden font-bold">4</span><span id="badge-step4" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+        <a href="#" data-step="3" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-3" class="inline">Step 3: 뇌파·시각화</span><span id="badge-step3" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
+        <a href="#" data-step="4" class="step-link flex items-center gap-2 px-2 sm:px-4 py-2 sm:py-3 rounded-xl text-slate-700 hover:bg-accent-100 text-sm sm:text-base lg:text-lg"><span id="step-label-4" class="inline">Step 4: AI 상담</span><span id="badge-step4" class="badge-done hidden text-xs bg-accent-400 text-white px-1.5 py-0.5 rounded-full ml-auto">완료</span></a>
       </nav>
       <div class="mt-6 sm:mt-8 pt-4 border-t border-violet-100">
         <button type="button" id="btn-save" class="w-full px-2 sm:px-4 py-2 sm:py-3 rounded-xl bg-panel hover:bg-accent-100 text-slate-700 text-xs sm:text-base lg:text-lg">저장·불러오기</button>
@@ -172,7 +172,7 @@
             </div>
             <div class="flex flex-wrap gap-4 items-center">
               <button id="btn-download-pdf" class="hidden px-6 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">PDF 보고서 다운로드</button>
-              <a id="link-pdf" href="#" target="_blank" class="hidden text-lg text-primary-600 underline">보고서 열기</a>
+              <a id="link-pdf" href="#" target="_blank" rel="noopener" class="hidden text-lg text-primary-600 underline ml-3">새 창에서 보기</a>
             </div>
           </div>
           <!-- Step 3: 뇌파 시각화 -->
@@ -546,6 +546,7 @@
     }
     let resultRadarChart = null;
     let aiConsultationNotes = [];
+    let pdfIncludeChatIds = [];
     let surveyDirty = false;
     /** 불러오기한 설문 id (목록 표시용). 새로 저장은 항상 새 행 추가. */
     let loadedSurveyId = null;
@@ -587,6 +588,7 @@
         throw new Error('문항 데이터를 읽을 수 없습니다.');
       }
       items = Array.isArray(data.items) ? data.items : [];
+      items.sort(function(a, b) { return (a.전체순번 != null ? a.전체순번 : a.sequence || 0) - (b.전체순번 != null ? b.전체순번 : b.sequence || 0); });
       var seqList = data.required_sequences;
       if (!Array.isArray(seqList) && items.length > 0) {
         seqList = items.map(function(i) { return i.전체순번 != null ? i.전체순번 : i.sequence; }).filter(function(x) { return x != null; });
@@ -606,7 +608,6 @@
     let adminDetailType = '';
 
     function showStep(step) {
-      if (step === 3) { showStep(4); return; }
       currentStep = step;
       document.querySelectorAll('.step-link').forEach((a) => {
         a.classList.remove('bg-accent-100');
@@ -746,35 +747,51 @@
       (async () => {
         try {
           let url = '';
-          if (adminDetailType === 'survey_saves') url = API_BASE + '/api/survey-saved/' + id;
-          else if (adminDetailType === 'eeg_saves') url = API_BASE + '/api/eeg-saved/' + id;
+          if (adminDetailType === 'survey_saves') {
+            var step = typeof currentStep === 'number' ? currentStep : 1;
+            url = API_BASE + '/api/survey-saved/' + id + (step === 1 ? '?include_questions=1' : step === 2 ? '?include_analysis=1&include_questions=1' : '');
+          } else if (adminDetailType === 'eeg_saves') url = API_BASE + '/api/eeg-saved/' + id;
           else if (adminDetailType === 'chat_saves') url = API_BASE + '/api/chat-saved/' + id;
           const res = await fetch(url, { credentials: 'same-origin' });
           const data = await res.json();
           if (!res.ok) throw new Error(data.detail || '조회 실패');
           if (adminDetailType === 'survey_saves') {
             var responses = data.responses || {};
+            var labels = data.question_labels || {};
+            var analysis = data.result_analysis || {};
+            var step = typeof currentStep === 'number' ? currentStep : 1;
             var seqs = Object.keys(responses).map(Number).sort(function(a, b) { return a - b; });
             var html = '<p class="text-slate-600">제목: ' + escapeHtml(data.title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p>';
-            if (seqs.length > 0) {
-              html += '<p class="mt-3 font-medium text-slate-700">응답 전체 내용</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg mt-1"><table class="w-full text-sm"><thead><tr class="bg-violet-50"><th class="p-2 text-left">문항</th><th class="p-2 text-left">점수</th></tr></thead><tbody>';
-              seqs.forEach(function(seq) { html += '<tr class="border-t border-violet-100"><td class="p-2">' + seq + '번</td><td class="p-2">' + responses[seq] + '점</td></tr>'; });
-              html += '</tbody></table></div>';
-            } else {
-              html += '<p class="mt-2 text-slate-500">저장된 응답이 없습니다.</p>';
+            if (step === 2 && analysis.리포트) {
+              html += '<div class="mt-3 p-3 rounded-lg bg-violet-50 border border-violet-100"><p class="font-medium text-violet-800 mb-2">결과 분석</p><p class="text-sm text-slate-700">' + escapeHtml(analysis.리포트.요약 || '') + '</p>';
+              var 역량별 = analysis.리포트.역량별 || [];
+              역량별.forEach(function(x) { html += '<p class="text-sm mt-2"><strong>' + escapeHtml(x.영역명 || '') + '</strong> ' + escapeHtml((x.해석 || '').slice(0, 400)) + (x.해석 && x.해석.length > 400 ? '…' : '') + '</p>'; });
+              html += '<p class="text-xs mt-2 text-slate-500">통합지수: ' + (analysis.통합지수_0_100 != null ? analysis.통합지수_0_100 + '점' : '-') + ', 사용 문항: ' + (analysis.사용된_문항수 || '-') + '개</p></div>';
             }
+            html += '<p class="mt-3 font-medium text-slate-700">' + (step === 1 ? '진단 번호 · 질문 내용 · 점수' : '응답 내역 (진단번호 · 질문 · 점수)') + '</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg mt-1"><table class="w-full text-sm"><thead><tr class="bg-violet-50"><th class="p-2 text-left">진단번호</th><th class="p-2 text-left">질문 내용</th><th class="p-2 text-left">점수</th></tr></thead><tbody>';
+            if (seqs.length > 0) {
+              seqs.forEach(function(seq) {
+                var qtext = labels[seq] ? (labels[seq].length > 80 ? labels[seq].slice(0, 80) + '…' : labels[seq]) : seq + '번';
+                html += '<tr class="border-t border-violet-100"><td class="p-2">' + seq + '</td><td class="p-2">' + escapeHtml(qtext) + '</td><td class="p-2">' + responses[seq] + '점</td></tr>';
+              });
+            } else {
+              html += '<tr><td colspan="3" class="p-2 text-slate-500">저장된 응답이 없습니다.</td></tr>';
+            }
+            html += '</tbody></table></div>';
             contentEl.innerHTML = html;
             if (mode === 'edit') { titleInput.value = data.title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
           } else if (adminDetailType === 'eeg_saves') {
             contentEl.innerHTML = '<p class="text-slate-600">제목: ' + escapeHtml(data.title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p><pre class="mt-2 text-xs overflow-x-auto">' + escapeHtml(JSON.stringify(data.data || {}, null, 2)) + '</pre>';
             if (mode === 'edit') { titleInput.value = data.title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
           } else if (adminDetailType === 'chat_saves') {
+            var notes = data.ai_consultation_notes || [];
+            var notesHtml = notes.length ? '<div class="mt-3 p-3 rounded-lg bg-violet-50 border border-violet-100"><p class="font-medium text-violet-800 mb-2">결과 분석 (AI 상담 요약)</p><div class="text-sm text-slate-700 space-y-2">' + notes.map(function(n) { return '<p class="whitespace-pre-wrap">' + escapeHtml((n || '').trim()) + '</p>'; }).join('') + '</div></div>' : '';
             var messages = data.messages || [];
             var convo = messages.map(function(m) {
               var role = (m.role === 'user') ? '나' : 'AI';
               return role + ': ' + (m.text || '');
             }).join('\n\n');
-            contentEl.innerHTML = '<p class="text-slate-600">제목: ' + escapeHtml(data.summary_title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p><p class="mt-3 font-medium text-slate-700">대화 전체 내용</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg p-2 bg-slate-50 whitespace-pre-wrap">' + escapeHtml(convo || '저장된 대화가 없습니다.') + '</div>';
+            contentEl.innerHTML = '<p class="text-slate-600">제목: ' + escapeHtml(data.summary_title || '') + '</p><p class="text-slate-500 text-xs mt-2">저장일: ' + (data.saved_at || '') + '</p>' + notesHtml + '<p class="mt-3 font-medium text-slate-700">대화 전체 내용</p><div class="max-h-96 overflow-y-auto border border-violet-100 rounded-lg p-2 bg-slate-50 whitespace-pre-wrap">' + escapeHtml(convo || '저장된 대화가 없습니다.') + '</div>';
             if (mode === 'edit') { titleInput.value = data.summary_title || ''; titleInput.classList.remove('hidden'); editSaveBtn.classList.remove('hidden'); }
           }
         } catch (e) {
@@ -1724,10 +1741,20 @@
         listEl.innerHTML = items.map((it) => {
           const date = (it.saved_at || '').slice(0, 10);
           const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
-          return '<label class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 border border-transparent hover:border-violet-200"><input type="radio" name="saved-chat-select" value="' + it.id + '" class="saved-chat-radio shrink-0"><div class="min-w-0 flex-1"><span class="font-medium text-slate-700">' + escapeHtml(it.summary_title || '제목 없음') + '</span>' + sub + '<span class="text-slate-400 text-xs ml-2">' + date + '</span></div><button type="button" class="btn-load-saved shrink-0 px-3 py-1.5 rounded-lg bg-primary-500 text-white text-sm" data-id="' + it.id + '">불러오기</button></label>';
+          const included = pdfIncludeChatIds.indexOf(it.id) >= 0;
+          return '<label class="flex items-center gap-2 p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 border border-transparent hover:border-violet-200"><input type="radio" name="saved-chat-select" value="' + it.id + '" class="saved-chat-radio shrink-0"><div class="min-w-0 flex-1"><span class="font-medium text-slate-700">' + escapeHtml(it.summary_title || '제목 없음') + '</span>' + sub + '<span class="text-slate-400 text-xs ml-2">' + date + '</span></div><button type="button" class="btn-load-saved shrink-0 px-3 py-1.5 rounded-lg bg-primary-500 text-white text-sm" data-id="' + it.id + '">불러오기</button><button type="button" class="btn-pdf-include shrink-0 px-3 py-1.5 rounded-lg ' + (included ? 'bg-violet-600 text-white' : 'bg-violet-100 text-violet-700') + ' text-sm" data-id="' + it.id + '">' + (included ? '포함됨' : '보고서에 포함') + '</button></label>';
         }).join('');
         listEl.querySelectorAll('.btn-load-saved').forEach((btn) => {
           btn.addEventListener('click', (e) => { e.preventDefault(); loadSaved(parseInt(btn.dataset.id, 10)); });
+        });
+        listEl.querySelectorAll('.btn-pdf-include').forEach((btn) => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            var id = parseInt(btn.dataset.id, 10);
+            var idx = pdfIncludeChatIds.indexOf(id);
+            if (idx >= 0) { pdfIncludeChatIds.splice(idx, 1); btn.textContent = '보고서에 포함'; btn.classList.remove('bg-violet-600', 'text-white'); btn.classList.add('bg-violet-100', 'text-violet-700'); }
+            else { pdfIncludeChatIds.push(id); btn.textContent = '포함됨'; btn.classList.add('bg-violet-600', 'text-white'); btn.classList.remove('bg-violet-100', 'text-violet-700'); }
+          });
         });
         const loadSelectedBtn = document.getElementById('btn-load-selected-saved');
         if (loadSelectedBtn) { loadSelectedBtn.classList.remove('hidden'); loadSelectedBtn.onclick = function() { var r = listEl.querySelector('input[name="saved-chat-select"]:checked'); if (r) loadSaved(parseInt(r.value, 10)); else alert('불러올 항목을 선택해 주세요.'); }; }
@@ -2208,6 +2235,7 @@
     });
     }
 
+    var lastPdfBlobUrl = null;
     var btnDownloadPdf = document.getElementById('btn-download-pdf');
     if (btnDownloadPdf) btnDownloadPdf.addEventListener('click', async () => {
       if (!lastAnalysis) { alert('먼저 설문을 제출해 주세요.'); return; }
@@ -2216,16 +2244,26 @@
         const res = await fetch(API_BASE + '/api/generate-pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ responses, excluded_sequences: excluded, ai_consultation_notes: aiConsultationNotes.length ? aiConsultationNotes : null, user_profile: currentUserProfile || null })
+          body: JSON.stringify({ responses, excluded_sequences: excluded, ai_consultation_notes: aiConsultationNotes.length ? aiConsultationNotes : null, include_chat_save_ids: pdfIncludeChatIds.length ? pdfIncludeChatIds : null, user_profile: currentUserProfile || null })
         });
         if (!res.ok) throw new Error(await res.text());
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
-        const a = document.getElementById('link-pdf');
+        if (lastPdfBlobUrl) URL.revokeObjectURL(lastPdfBlobUrl);
+        lastPdfBlobUrl = url;
+        var a = document.getElementById('link-pdf');
         a.href = url;
-        a.download = 'sbi_report.pdf';
+        a.removeAttribute('download');
+        a.target = '_blank';
+        a.rel = 'noopener';
         a.classList.remove('hidden');
-        a.click();
+        var dl = document.createElement('a');
+        dl.href = url;
+        dl.download = 'sbi_report.pdf';
+        dl.style.display = 'none';
+        document.body.appendChild(dl);
+        dl.click();
+        document.body.removeChild(dl);
       } catch (e) {
         alert('PDF 생성 실패: ' + (e.message || e));
       }
@@ -2283,9 +2321,9 @@
           el.style.display = currentUserIsAdmin ? '' : 'none';
         });
         var step3Link = document.querySelector('.step-link[data-step="3"]');
-        if (step3Link) step3Link.style.display = 'none';
+        if (step3Link) step3Link.style.display = '';
         var lowerPanel = document.getElementById('lower-panel-eeg-viz');
-        if (lowerPanel) lowerPanel.classList.add('hidden');
+        if (lowerPanel) lowerPanel.classList.remove('hidden');
         try {
           await loadSurveyItems('sequence', 0);
         } catch (e) {

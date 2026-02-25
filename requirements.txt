@@ -17,3 +17,5 @@ reportlab>=4.0.0
 PyMySQL>=1.1.0
 # PostgreSQL (Supabase 등)
 psycopg2-binary>=2.9.0
+# Step 4: AI 상담 (GPT API, 선택)
+openai>=1.0.0

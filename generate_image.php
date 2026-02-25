@@ -3,11 +3,18 @@ error_reporting(0);
 ini_set('display_errors', 0);
 ob_start();
 
+require_once __DIR__ . '/load_env.php';
 require_once 'openai_api.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
 $apiKey = getenv('OPENAI_API_KEY') ?: '';
+if (empty($apiKey)) {
+    ob_clean();
+    echo json_encode(['success' => false, 'message' => 'OPENAI_API_KEY 환경 변수가 설정되지 않았습니다.'], JSON_UNESCAPED_UNICODE);
+    ob_end_flush();
+    exit;
+}
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);

@@ -14,7 +14,7 @@ _KOREAN_FONT_NAME = None
 
 
 def _get_font_name():
-    """한글 폰트 경로 탐색 후 등록, 폰트 이름 반환. Windows(malgun), 프로젝트 fonts/, 맑은고딕 순."""
+    """한글 호환 폰트 탐색: Windows 맑은고딕, 프로젝트 fonts/, Linux Nanum/Noto 순. TTC는 subfontIndex=0."""
     global _KOREAN_FONT_NAME
     if _KOREAN_FONT_NAME is not None:
         return _KOREAN_FONT_NAME
@@ -23,16 +23,27 @@ def _get_font_name():
         from reportlab.pdfbase.ttfonts import TTFont
         base = os.path.dirname(os.path.abspath(__file__))
         candidates = [
-            ("NanumGothic", "C:/Windows/Fonts/malgun.ttf"),
-            ("NanumGothic", os.path.join(base, "fonts", "malgun.ttf")),
-            ("NanumGothic", os.path.join(base, "fonts", "NanumGothic.ttf")),
-            ("NanumGothic", "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"),
+            ("Korean", "C:/Windows/Fonts/malgun.ttf", None),
+            ("Korean", os.path.join(base, "fonts", "malgun.ttf"), None),
+            ("Korean", os.path.join(base, "fonts", "NanumGothic.ttf"), None),
+            ("Korean", os.path.join(base, "fonts", "NotoSansKR-Regular.ttf"), None),
+            ("Korean", "/usr/share/fonts/truetype/nanum/NanumGothic.ttf", None),
+            ("Korean", "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc", 0),
+            ("Korean", "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc", 0),
+            ("Korean", "/usr/share/fonts/NotoSerifCJK-Regular.ttc", 0),
         ]
-        for name, path in candidates:
-            if os.path.isfile(path):
-                pdfmetrics.registerFont(TTFont(name, path))
+        for name, path, subfont in candidates:
+            if not os.path.isfile(path):
+                continue
+            try:
+                if subfont is not None and path.lower().endswith(".ttc"):
+                    pdfmetrics.registerFont(TTFont(name, path, subfontIndex=subfont))
+                else:
+                    pdfmetrics.registerFont(TTFont(name, path))
                 _KOREAN_FONT_NAME = name
                 return name
+            except Exception:
+                continue
     except Exception:
         pass
     _KOREAN_FONT_NAME = "Helvetica"
@@ -85,22 +96,22 @@ def generate_sbi_pdf(
         output_filename = f"sbi_report_{int(time.time())}.pdf"
     path = os.path.join(PDF_OUTPUT_DIR, output_filename)
 
-    doc = SimpleDocTemplate(path, pagesize=A4, rightMargin=22*mm, leftMargin=22*mm, topMargin=22*mm, bottomMargin=22*mm)
+    doc = SimpleDocTemplate(path, pagesize=A4, rightMargin=20*mm, leftMargin=20*mm, topMargin=20*mm, bottomMargin=26*mm)
     story = []
     styles = getSampleStyleSheet()
     title_style = ParagraphStyle(
-        name="Title", fontName=font_name, fontSize=18, spaceAfter=8,
-        textColor=colors.HexColor(_PURPLE_DARK), alignment=1
+        name="Title", fontName=font_name, fontSize=20, spaceAfter=10,
+        textColor=colors.HexColor(_PURPLE_DARK), alignment=1, spaceBefore=6
     )
     subtitle_style = ParagraphStyle(
-        name="Subtitle", fontName=font_name, fontSize=12, spaceAfter=14,
+        name="Subtitle", fontName=font_name, fontSize=13, spaceAfter=16,
         textColor=colors.HexColor(_PURPLE_MID), alignment=1
     )
     heading_style = ParagraphStyle(
-        name="Heading", fontName=font_name, fontSize=12, spaceAfter=6,
+        name="Heading", fontName=font_name, fontSize=12, spaceAfter=6, spaceBefore=4,
         textColor=colors.HexColor(_PURPLE_DARK)
     )
-    body_style = ParagraphStyle(name="Body", fontName=font_name, fontSize=10, leading=15)
+    body_style = ParagraphStyle(name="Body", fontName=font_name, fontSize=10, leading=16)
 
     DOMAIN_ORDER = [
         "창업공감 및 동기부여 역량",
@@ -237,9 +248,15 @@ def generate_sbi_pdf(
         bc.categoryAxis.labels.boxAnchor = "ne"
         bc.categoryAxis.categoryNames = [n.split()[0][:4] if n else "" for n, _ in domain_scores]
         bc.categoryAxis.labels.fontName = font_name
+        bc.categoryAxis.labels.fontSize = 9
         bc.valueAxis.valueMin = 0
         bc.valueAxis.valueMax = 100
         bc.valueAxis.valueStep = 20
+        try:
+            bc.valueAxis.labels.fontName = font_name
+            bc.valueAxis.labels.fontSize = 8
+        except Exception:
+            pass
         bc.bars[0].fillColor = colors.HexColor(_PURPLE_ACCENT)
         drawing.add(bc)
         story.append(drawing)
@@ -342,5 +359,31 @@ def generate_sbi_pdf(
     story.append(Spacer(1, 6*mm))
     story.append(Paragraph("— 본 리포트는 「자신을 깨우는 시간의 보고서」 Startup Brain Index(SBI) 창업가 뇌 지수 측정 결과입니다. since 2024 장산뇌혁신데이터랩", body_style))
 
-    doc.build(story)
+    def _draw_footer(canvas, doc):
+        canvas.saveState()
+        try:
+            from reportlab.lib import colors
+            from reportlab.lib.utils import Rect
+            canvas.setFont(font_name, 9)
+            canvas.setFillColor(colors.HexColor(_PURPLE_MID))
+            y = 14 * mm
+            centre_x = doc.pagesize[0] / 2
+            canvas.drawCentredString(centre_x, y, "↑ 위로가기")
+            try:
+                if canvas.getPageNumber() > 1:
+                    rect = Rect(centre_x - 25*mm, y - 2*mm, centre_x + 25*mm, y + 4*mm)
+                    canvas.linkAbsolute("", "pdf_top", rect)
+            except Exception:
+                pass
+        finally:
+            canvas.restoreState()
+
+    def _first_page(canvas, doc):
+        try:
+            canvas.bookmarkPage("pdf_top")
+        except Exception:
+            pass
+        _draw_footer(canvas, doc)
+
+    doc.build(story, onFirstPage=_first_page, onLaterPages=_draw_footer)
     return path

@@ -74,9 +74,16 @@ def run_test_1(opener):
     first_id = items[0].get("id")
     if not first_id:
         return True, "%d items" % len(items), False
-    _, err2 = get_json(opener, "/api/survey-saved/%s" % first_id)
+    data2, err2 = get_json(opener, "/api/survey-saved/%s" % first_id)
     if err2:
         return False, "Get: %s" % err2, is_db_connection_error(err2)
+    # optional: include_questions / include_analysis (admin Step1/Step2 보기용)
+    _, err3 = get_json(opener, "/api/survey-saved/%s?include_questions=1" % first_id)
+    if err3:
+        return False, "Get+questions: %s" % err3, is_db_connection_error(err3)
+    _, err4 = get_json(opener, "/api/survey-saved/%s?include_analysis=1" % first_id)
+    if err4:
+        return False, "Get+analysis: %s" % err4, is_db_connection_error(err4)
     return True, "%d items, get OK" % len(items), False
 
 
