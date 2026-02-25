@@ -4,7 +4,7 @@ FastAPI 메인 애플리케이션
 import os
 import secrets
 import random
-from fastapi import FastAPI, HTTPException, Request, Depends, Form
+from fastapi import FastAPI, HTTPException, Request, Depends, Form, Query
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Optional, Any
@@ -241,6 +241,22 @@ async def api_logout(request: Request):
     """로그아웃 후 로그인 페이지로 리다이렉트"""
     request.session.clear()
     return RedirectResponse(url="/login", status_code=302)
+
+
+@app.get("/api/check-email")
+async def api_check_email(email: Optional[str] = Query(None)):
+    """회원가입 전 이메일 검사: 형식·일회용 도메인·중복. valid, available, message, reason 반환. DB 오류 시에도 JSON으로 응답해 프론트에서 정상/경고 구분 가능."""
+    try:
+        from user_storage import check_email_for_register
+        return check_email_for_register(email or "")
+    except Exception as e:
+        # DB 연결 실패 등: 200으로 응답하되 available=False, 서버 점검 안내 (신규 이메일인데 경고로 보이지 않도록)
+        return {
+            "valid": False,
+            "available": False,
+            "reason": "error",
+            "message": "일시적으로 확인할 수 없습니다. 잠시 후 다시 시도하거나 관리자에게 문의해 주세요.",
+        }
 
 
 @app.get("/api/me")

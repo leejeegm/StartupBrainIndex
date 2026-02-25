@@ -324,7 +324,18 @@
           return Promise.resolve({ valid: false, available: false });
         }
         return fetch('/api/check-email?email=' + encodeURIComponent(v))
-          .then(function(r) { return r.json(); })
+          .then(function(r) {
+            return r.json().then(function(data) {
+              if (!r.ok) {
+                data = data || {};
+                data.valid = false;
+                data.available = false;
+                data.reason = 'error';
+                data.message = data.detail || '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+              }
+              return data;
+            });
+          })
           .then(function(data) {
             var isOk = data.valid && data.available;
             var reason = data.reason || '';
@@ -350,7 +361,7 @@
             emailMsg.classList.remove('hidden');
             emailMsg.classList.remove('text-green-600');
             emailMsg.classList.add('text-red-600');
-            emailMsg.textContent = '이메일 확인 중 오류가 발생했습니다.';
+            emailMsg.textContent = '이메일 확인 중 오류가 발생했습니다. 네트워크를 확인해 주세요.';
             emailCheckedValue = '';
             emailCheckedOk = false;
             return { valid: false, available: false };
