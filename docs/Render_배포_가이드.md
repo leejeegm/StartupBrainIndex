@@ -38,7 +38,7 @@ GitHub에 올린 현재 버전(SBI FastAPI)을 **Render**에서 무료 Web Servi
 | **Region** | **Singapore** (한국과 가까움) 또는 Oregon |
 | **Branch** | `main` |
 | **Runtime** | **Python 3** |
-| **Build Command** | `pip install -r requirements.txt && pip install itsdangerous==2.1.2` |
+| **Build Command** | `pip install itsdangerous==2.1.2 python-multipart && pip install -r requirements.txt && pip install python-multipart` |
 | **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
 
 - **Advanced** 펼치면 **Docker** 등 다른 옵션이 있음. 여기서는 기본(Python)만 사용.
@@ -92,15 +92,17 @@ GitHub에 올린 현재 버전(SBI FastAPI)을 **Render**에서 무료 Web Servi
 | 503 / Application failed | Start Command가 `uvicorn main:app --host 0.0.0.0 --port $PORT` 인지 확인. `main.py` 가 루트에 있는지 확인 |
 | 로그인 안 됨 | `SESSION_SECRET` 이 설정됐는지 확인. 값이 비어 있으면 세션 오류 발생 가능 |
 | DB 오류 | SQLite 사용 시 Render 디스크 휘발성 참고. MySQL 쓰면 환경 변수(DB_HOST 등) 확인 |
+| **실행 중 exit 1** (itsdangerous / SessionMiddleware 등) | Deploys → 실패한 배포 → **Logs** 에서 `==> Running 'uvicorn'` 다음 **Traceback** 확인. `ModuleNotFoundError`면 해당 패키지를 requirements.txt 및 Build Command에 추가 |
+| **RuntimeError: python-multipart 필요** (폼 데이터) | `requirements.txt`에 `python-multipart` 추가 후 푸시. 또는 Build Command에 `pip install python-multipart` 포함 |
 
 ---
 
 ## 5. 요약
 
 1. Render 가입 → **New Web Service** → 저장소 `StartupBrainIndex` 연결  
-2. **Build**: `pip install -r requirements.txt`  
+2. **Build**: `pip install itsdangerous==2.1.2 python-multipart && pip install -r requirements.txt && pip install python-multipart`  
 3. **Start**: `uvicorn main:app --host 0.0.0.0 --port $PORT`  
-4. **Env**: `SESSION_SECRET` (필수), `DB_ENGINE`, `DB_NAME`  
+4. **Env**: `PYTHON_VERSION`=3.11.7, `SESSION_SECRET` (필수), `DB_ENGINE`, `DB_NAME`  
 5. Create 후 URL로 접속해 동작 확인  
 
 이렇게 하면 현재 버전이 Render에서 배포됩니다. 나중에 MVP2는 Vercel로 비교 배포하면 됩니다.
