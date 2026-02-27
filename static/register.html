@@ -312,8 +312,41 @@
       var emailMsg = document.getElementById('email-check-msg');
       var emailCheckBtn = document.getElementById('btn-email-check');
       var checkTimeout = null;
+      var messageHideTimeout = null;
       var emailCheckedValue = '';
       var emailCheckedOk = false;
+      var EMAIL_MSG_DURATION_MS = 4500;
+      function hideEmailMsgLater() {
+        if (messageHideTimeout) clearTimeout(messageHideTimeout);
+        messageHideTimeout = setTimeout(function() {
+          emailMsg.classList.add('hidden');
+          emailMsg.textContent = '';
+          messageHideTimeout = null;
+        }, EMAIL_MSG_DURATION_MS);
+      }
+      function showEmailResult(data, v) {
+        var isOk = data.valid && data.available;
+        var reason = data.reason || '';
+        emailMsg.classList.remove('hidden');
+        emailMsg.classList.remove('text-green-600', 'text-amber-600', 'text-red-600');
+        var msg = (data.message || '').trim();
+        if (/not\s*found/i.test(msg)) msg = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+        emailMsg.textContent = msg || (isOk ? '가입 가능합니다.' : '정상 이메일인지 확인해 주세요.');
+        if (isOk) {
+          emailMsg.classList.add('text-green-600');
+          emailCheckedValue = v;
+          emailCheckedOk = true;
+        } else if (reason === 'duplicate') {
+          emailMsg.classList.add('text-amber-600');
+          emailCheckedValue = v;
+          emailCheckedOk = false;
+        } else {
+          emailMsg.classList.add('text-red-600');
+          emailCheckedValue = v;
+          emailCheckedOk = false;
+        }
+        hideEmailMsgLater();
+      }
       function checkEmail() {
         var v = (emailInput.value || '').trim().toLowerCase();
         if (!v) {
@@ -325,45 +358,44 @@
         }
         return fetch('/api/check-email?email=' + encodeURIComponent(v))
           .then(function(r) {
-            return r.json().then(function(data) {
+            return r.text().then(function(text) {
+              var data = {};
+              try {
+                data = JSON.parse(text);
+              } catch (e) {
+                if (r.status === 404 || /not\s*found/i.test(text)) {
+                  data = { valid: false, available: false, reason: 'error', message: '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.' };
+                } else {
+                  data = { valid: false, available: false, reason: 'error', message: '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' };
+                }
+              }
+              data = data || {};
               if (!r.ok) {
-                data = data || {};
                 data.valid = false;
                 data.available = false;
                 data.reason = 'error';
-                data.message = data.detail || '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                var detail = (data.detail || data.message || '').trim();
+                if (r.status === 404 || /not\s*found/i.test(detail)) {
+                  data.message = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+                } else {
+                  data.message = detail || '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                }
               }
               return data;
             });
           })
           .then(function(data) {
-            var isOk = data.valid && data.available;
-            var reason = data.reason || '';
-            emailMsg.classList.remove('hidden');
-            emailMsg.classList.remove('text-green-600', 'text-amber-600', 'text-red-600');
-            emailMsg.textContent = data.message || (isOk ? '가입 가능합니다.' : '정상 이메일인지 확인해 주세요.');
-            if (isOk) {
-              emailMsg.classList.add('text-green-600');
-              emailCheckedValue = v;
-              emailCheckedOk = true;
-            } else if (reason === 'duplicate') {
-              emailMsg.classList.add('text-amber-600');
-              emailCheckedValue = v;
-              emailCheckedOk = false;
-            } else {
-              emailMsg.classList.add('text-red-600');
-              emailCheckedValue = v;
-              emailCheckedOk = false;
-            }
+            showEmailResult(data, v);
             return data;
           })
           .catch(function() {
             emailMsg.classList.remove('hidden');
-            emailMsg.classList.remove('text-green-600');
+            emailMsg.classList.remove('text-green-600', 'text-amber-600');
             emailMsg.classList.add('text-red-600');
             emailMsg.textContent = '이메일 확인 중 오류가 발생했습니다. 네트워크를 확인해 주세요.';
             emailCheckedValue = '';
             emailCheckedOk = false;
+            hideEmailMsgLater();
             return { valid: false, available: false };
           });
       }
@@ -371,6 +403,7 @@
       emailInput.addEventListener('input', function() {
         emailCheckedValue = '';
         emailCheckedOk = false;
+        if (messageHideTimeout) { clearTimeout(messageHideTimeout); messageHideTimeout = null; }
         if (checkTimeout) clearTimeout(checkTimeout);
         if (!(emailInput.value || '').trim()) { emailMsg.classList.add('hidden'); emailMsg.textContent = ''; return; }
         checkTimeout = setTimeout(checkEmail, 500);
@@ -416,9 +449,29 @@
       }
       try {
         var checkRes = await fetch('/api/check-email?email=' + encodeURIComponent(emailVal));
-        var checkData = await checkRes.json();
+        var text = await checkRes.text();
+        var checkData = {};
+        try {
+          checkData = JSON.parse(text);
+        } catch (e) {
+          if (checkRes.status === 404 || /not\s*found/i.test(text)) {
+            checkData = { valid: false, available: false, message: '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.' };
+          } else {
+            checkData = { valid: false, available: false, message: '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.' };
+          }
+        }
+        if (!checkRes.ok) {
+          var msg = (checkData.detail || checkData.message || '').trim();
+          if (/not\s*found/i.test(msg) || checkRes.status === 404) msg = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+          else if (!msg) msg = '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+          err.textContent = msg;
+          err.classList.remove('hidden');
+          return;
+        }
         if (!checkData.valid || !checkData.available) {
-          err.textContent = checkData.message || '이메일 정상여부를 확인해 주세요. 가입 가능 / 중복 이메일 / 형식·일회용 이메일은 로그인·아이디/비밀번호 찾기로 확인할 수 있습니다.';
+          var showMsg = (checkData.message || '').trim();
+          if (/not\s*found/i.test(showMsg)) showMsg = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+          err.textContent = showMsg || '이메일 정상여부를 확인해 주세요. 가입 가능 / 중복 이메일 / 형식·일회용 이메일은 로그인·아이디/비밀번호 찾기로 확인할 수 있습니다.';
           err.classList.remove('hidden');
           return;
         }
@@ -454,16 +507,24 @@
         var res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify(payload)
         });
-        var data = await res.json();
+        var text = await res.text();
+        var data = {};
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (e) {
+          data = { detail: '' };
+        }
         if (!res.ok) {
-          var detail = (data.detail || '가입에 실패했습니다.').trim();
-          if (res.status === 503 && (detail.indexOf('데이터베이스') >= 0 || detail.indexOf('MySQL') >= 0 || detail.indexOf('연결') >= 0 || detail.indexOf('DB') >= 0)) {
-            err.textContent = '회원가입을 위해 서버 DB 연결이 필요합니다. MySQL 서버가 실행 중인지, 서버의 DB 호스트(환경변수 DB_HOST) 설정이 맞는지 확인해 주세요. 잠시 후 다시 시도하거나 관리자에게 문의하세요.';
-          } else {
-            err.textContent = detail;
+          var detail = (data.detail || data.message || '가입에 실패했습니다.').trim();
+          if (res.status === 404 || /not\s*found/i.test(detail)) {
+            detail = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+          } else if (res.status === 503 && (detail.indexOf('데이터베이스') >= 0 || detail.indexOf('MySQL') >= 0 || detail.indexOf('연결') >= 0 || detail.indexOf('DB') >= 0)) {
+            detail = '회원가입을 위해 서버 DB 연결이 필요합니다. 잠시 후 다시 시도하거나 관리자에게 문의하세요.';
           }
+          err.textContent = detail;
           err.classList.remove('hidden');
           return;
         }
@@ -487,7 +548,11 @@
         if (backLink) backLink.classList.add('hidden');
         document.getElementById('register-success').classList.remove('hidden');
       } catch (x) {
-        err.textContent = '네트워크 오류입니다. 연결 주소를 확인해 주세요.';
+        var msg = (x && (x.message || x.toString())) || '';
+        if (/not\s*found/i.test(msg)) msg = '서버가 업데이트 중일 수 있습니다. 잠시 후 다시 시도해 주세요.';
+        else if (!msg) msg = '네트워크 오류입니다. 연결 주소를 확인해 주세요.';
+        else msg = '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+        err.textContent = msg;
         err.classList.remove('hidden');
       }
     });

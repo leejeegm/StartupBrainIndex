@@ -194,14 +194,56 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    name: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    occupation: Optional[str] = None
+    nationality: Optional[str] = None
+    sleep_hours: Optional[Any] = None
+    sleep_hours_label: Optional[str] = None
+    sleep_quality: Optional[str] = None
+    meal_habit: Optional[str] = None
+    bowel_habit: Optional[str] = None
+    exercise_habit: Optional[str] = None
+
+
+@app.get("/api/check-email")
+async def api_check_email(email: Optional[str] = None):
+    """가입 전 이메일 검사. 항상 200 + valid/available/message (DB 오류 시에도 200)."""
+    e = (email or "").strip().lower()
+    if not e:
+        return {"valid": False, "available": False, "reason": "empty", "message": "이메일을 입력해 주세요."}
+    try:
+        from user_storage import check_email_for_register
+        return check_email_for_register(e)
+    except Exception:
+        return {
+            "valid": False,
+            "available": False,
+            "reason": "error",
+            "message": "일시적으로 이메일 확인을 할 수 없습니다. 잠시 후 다시 시도해 주세요.",
+        }
 
 
 @app.post("/api/register")
 async def api_register(body: RegisterRequest):
-    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구."""
+    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503."""
     try:
         from user_storage import register
-        out = register(body.email.strip(), body.password)
+        out = register(
+            body.email.strip(),
+            body.password,
+            name=body.name,
+            gender=body.gender,
+            age=body.age,
+            occupation=body.occupation,
+            nationality=body.nationality,
+            sleep_hours=body.sleep_hours if body.sleep_hours is not None else body.sleep_hours_label,
+            sleep_quality=body.sleep_quality,
+            meal_habit=body.meal_habit,
+            bowel_habit=body.bowel_habit,
+            exercise_habit=body.exercise_habit,
+        )
         return {"ok": True, "email": out["email"], "created_at": out["created_at"]}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
