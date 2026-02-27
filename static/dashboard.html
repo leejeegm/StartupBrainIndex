@@ -447,6 +447,18 @@
     </div>
   </div>
 
+  <!-- 다시하기(역량별 랜덤): 96/71문항 선택 모달 -->
+  <div id="modal-retry-survey-choice" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center p-4" aria-modal="true" style="display: none;">
+      <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 border border-violet-100">
+        <h3 class="text-lg font-bold text-violet-900 mb-3">96문항과 71문항 중 선택하여 진단할 수 있습니다.</h3>
+        <div class="flex flex-col gap-3 mb-4">
+          <button type="button" id="retry-choice-96" class="w-full px-4 py-3 rounded-xl bg-violet-600 text-white hover:bg-violet-700 font-medium">96문항 모형 (24개 랜덤)</button>
+          <button type="button" id="retry-choice-71" class="w-full px-4 py-3 rounded-xl border-2 border-violet-500 text-violet-700 hover:bg-violet-50 font-medium">71문항 모형 (24개 랜덤)</button>
+        </div>
+        <button type="button" id="modal-retry-choice-close" class="w-full px-4 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 text-base">취소</button>
+      </div>
+  </div>
+
   <!-- 관리자: 기존 데이터 불러오기 모달 (SQLite 백업 업로드 + 데이터 선정) -->
   <div id="modal-admin-restore-db" class="fixed inset-0 z-50 hidden bg-black/50" aria-modal="true">
     <div class="flex min-h-full items-center justify-center p-4">
@@ -2490,10 +2502,17 @@
         setSurveyLoadButtonsEnabled(true);
       }
     }
-    async function runRetryRandom() {
+    function openRetryChoiceModal() {
+      var modal = document.getElementById('modal-retry-survey-choice');
+      if (modal) { modal.classList.remove('hidden'); modal.style.display = 'flex'; }
+    }
+    function closeRetryChoiceModal() {
+      var modal = document.getElementById('modal-retry-survey-choice');
+      if (modal) { modal.classList.add('hidden'); modal.style.display = 'none'; }
+    }
+    async function runRetryRandomWithMode(mode) {
       if (surveyLoadInProgress) return;
-      var use96 = confirm('96문항과 71문항 중 선택하여 진단할 수 있습니다.\n\n[확인] 96문항 모형 (24개 랜덤)\n[취소] 71문항 모형 (24개 랜덤)');
-      var mode = use96 ? 'all' : 'selected';
+      closeRetryChoiceModal();
       setSurveyLoadButtonsEnabled(false);
       var retryBtn = document.getElementById('btn-retry-random');
       if (retryBtn) retryBtn.textContent = '불러오는 중…';
@@ -2516,9 +2535,16 @@
         if (retryBtn) retryBtn.textContent = '다시하기 (역량별 랜덤)';
       }
     }
+    async function runRetryRandom() {
+      if (surveyLoadInProgress) return;
+      openRetryChoiceModal();
+    }
     window.__runRetryRandom = runRetryRandom;
     var btnRetryRandom = document.getElementById('btn-retry-random');
     if (btnRetryRandom) btnRetryRandom.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runRetryRandom(); });
+    document.getElementById('retry-choice-96') && document.getElementById('retry-choice-96').addEventListener('click', function() { runRetryRandomWithMode('all'); });
+    document.getElementById('retry-choice-71') && document.getElementById('retry-choice-71').addEventListener('click', function() { runRetryRandomWithMode('selected'); });
+    document.getElementById('modal-retry-choice-close') && document.getElementById('modal-retry-choice-close').addEventListener('click', closeRetryChoiceModal);
 
     document.getElementById('btn-full-96') && document.getElementById('btn-full-96').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 0, 'all'); });
     document.getElementById('btn-full-71') && document.getElementById('btn-full-71').addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); runLoadSurvey('sequence', 0, 'selected'); });

@@ -3,11 +3,12 @@ error_reporting(0);
 ini_set('display_errors', 0);
 ob_start();
 
+require_once __DIR__ . '/load_env.php';
 require_once 'openai_api.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
-$apiKey = getenv('OPENAI_API_KEY') ?: '';
+$apiKey = getenv('OPENAI_API_KEY') ?: ($_ENV['OPENAI_API_KEY'] ?? '');
 
 try {
     $input = json_decode(file_get_contents('php://input'), true);

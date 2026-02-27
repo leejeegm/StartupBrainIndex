@@ -1,9 +1,11 @@
 <?php
+require_once __DIR__ . '/load_env.php';
 require_once 'openai_api.php';
 
 header('Content-Type: application/json');
 
-$apiKey = getenv('OPENAI_API_KEY') ?: '';
+// 로컬: .env 의 OPENAI_API_KEY 또는 시스템 환경변수 사용
+$apiKey = getenv('OPENAI_API_KEY') ?: ($_ENV['OPENAI_API_KEY'] ?? '');
 
 $input = json_decode(file_get_contents('php://input'), true);
 $text = $input['text'] ?? '';

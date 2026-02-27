@@ -371,18 +371,11 @@ def generate_sbi_pdf(
         canvas.saveState()
         try:
             from reportlab.lib import colors
-            from reportlab.lib.utils import Rect
             canvas.setFont(font_name, 9)
             canvas.setFillColor(colors.HexColor(_PURPLE_MID))
             y = 14 * mm
             centre_x = doc.pagesize[0] / 2
             canvas.drawCentredString(centre_x, y, "↑ 위로가기")
-            try:
-                if canvas.getPageNumber() > 1:
-                    rect = Rect(centre_x - 25*mm, y - 2*mm, centre_x + 25*mm, y + 4*mm)
-                    canvas.linkAbsolute("", "pdf_top", rect)
-            except Exception:
-                pass
         finally:
             canvas.restoreState()
 

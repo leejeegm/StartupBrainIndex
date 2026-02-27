@@ -356,6 +356,38 @@ async def api_admin_users(request: Request):
     }
 
 
+@app.get("/api/admin/user-detail")
+async def api_admin_user_detail(request: Request, email: Optional[str] = None):
+    """회원 상세 (로그인 정보 + 프로필). 관리자만. 이메일 쿼리 필수."""
+    user = get_current_user(request)
+    if not is_admin(user):
+        raise HTTPException(status_code=403, detail="관리자만 조회할 수 있습니다.")
+    email = (email or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="email 쿼리가 필요합니다.")
+    if email in USERS_DEMO:
+        return {
+            "email": email,
+            "created_at": "-",
+            "password_type": "demo_plaintext",
+            "password_visible": "(데모 계정)",
+            "name": "-", "gender": "-", "age": None, "occupation": "-", "nationality": "-",
+            "sleep_hours": "-", "sleep_quality": "-", "meal_habit": "-", "bowel_habit": "-", "exercise_habit": "-",
+        }
+    try:
+        from user_storage import get_user_detail_for_admin
+        detail = get_user_detail_for_admin(email)
+        if not detail:
+            raise HTTPException(status_code=404, detail="Not Found")
+        detail.setdefault("password_type", "해시(복호화 불가)")
+        detail.setdefault("password_visible", "-")
+        return detail
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=404, detail="Not Found")
+
+
 class AdminDeleteUserRequest(BaseModel):
     email: str
 
