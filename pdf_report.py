@@ -163,11 +163,29 @@ def generate_sbi_pdf(
         "창업두뇌활용 및 계발 역량",
         "주체적책임 및 창업의식 역량",
     ]
-    domains = combined_result.get("영역별_통합점수") or []
+
+    def _norm(s: str) -> str:
+        return " ".join((s or "").strip().split())
+
+    def _score_from(d: Any) -> float:
+        if not d or not isinstance(d, dict):
+            return 0.0
+        sc = d.get("combined_score")
+        if sc is not None and isinstance(sc, (int, float)):
+            return max(0.0, min(100.0, float(sc)))
+        avg = d.get("평균점수")
+        if avg is not None and isinstance(avg, (int, float)) and 1 <= avg <= 5:
+            return round((float(avg) - 1) / 4.0 * 100.0, 1)
+        return 0.0
+
+    domains = combined_result.get("영역별_통합점수") or combined_result.get("영역별점수") or []
     domain_scores = []
     for name in DOMAIN_ORDER:
-        d = next((x for x in domains if name in (x.get("영역명") or "") or (x.get("영역명") or "").strip() == name), None)
-        domain_scores.append((name, d.get("combined_score", 0) if d else 0))
+        d = next(
+            (x for x in domains if x and (_norm(name) in _norm(x.get("영역명") or "") or _norm(x.get("영역명") or "") in _norm(name) or _norm(x.get("영역명") or "") == _norm(name))),
+            None,
+        )
+        domain_scores.append((name, _score_from(d)))
 
     # ========== 1페이지: 표지 (보라색 전문 · 자신을 깨우는 시간) ==========
     story.append(Spacer(1, 18*mm))
@@ -302,14 +320,18 @@ def generate_sbi_pdf(
     story.append(Spacer(1, 4*mm))
     try:
         if domain_scores and len(domain_scores) >= 1:
-            # 그래프: 한글 폰트·크기·배치로 가독성 확보
+            # 그래프: 한글 폰트·막대 가시성(barWidth/barSpacing)·배치
             drawing = Drawing(170*mm, 75*mm)
             bc = VerticalBarChart()
             bc.x = 50
             bc.y = 20
             bc.height = 55*mm
             bc.width = 120*mm
-            bc.data = [[s for _, s in domain_scores]]
+            data_vals = [float(s) for _, s in domain_scores]
+            bc.data = [data_vals]
+            bc.barWidth = 18
+            bc.barSpacing = 4
+            bc.groupSpacing = 10
             bc.strokeColor = colors.HexColor(_PURPLE_ACCENT)
             bc.fillColor = colors.HexColor(_PURPLE_LIGHT)
             bc.categoryAxis.labels.boxAnchor = "ne"
@@ -349,31 +371,50 @@ def generate_sbi_pdf(
     story.append(Paragraph("※ 방사형 도표는 웹 대시보드 Step 2에서 확인할 수 있습니다.", body_style))
     story.append(PageBreak())
 
-    # ========== 3페이지: AI 해석 (영역 순, 하위요소 키워드·검색 근거 반영) ==========
-    story.append(Paragraph("AI 해석", heading_style))
+    # ========== 3페이지: AI 해석·시사점 (영역별 해석, 불일치, 시사점 분석) ==========
+    story.append(Paragraph("AI 해석 및 시사점 분석", heading_style))
     if report_dict:
         요약 = report_dict.get("요약") or ""
         story.append(Paragraph(str(요약)[:2000], body_style))
         story.append(Spacer(1, 6*mm))
+        story.append(Paragraph("【역량별 해석】", ParagraphStyle(name="SubHeading", fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor(_PURPLE_DARK))))
         역량별 = report_dict.get("역량별", [])
         for name in DOMAIN_ORDER:
-            s = next((x for x in 역량별 if name in (x.get("영역명") or "") or (x.get("영역명") or "").strip() == name), None)
+            s = next((x for x in 역량별 if (x.get("영역명") or "") and (_norm(name) in _norm(x.get("영역명") or "") or _norm(x.get("영역명") or "") in _norm(name)), None)
             if s:
-                # 영역 순·하위요소 키워드 정의는 해석 문단에 포함됨
-                story.append(Paragraph(f"[{name}] {s.get('해석', '')}", body_style))
+                해석텍스트 = (s.get("해석") or "").strip()
+                if 해석텍스트:
+                    story.append(Paragraph(f"[{name}] {해석텍스트[:800]}" + ("…" if len(해석텍스트) > 800 else ""), body_style))
                 참고 = (s.get("참고_검색근거") or "").strip()
                 if 참고:
-                    story.append(Paragraph(f"※ 참고(검색 근거): {참고}", body_style))
+                    story.append(Paragraph(f"※ 참고(검색 근거): {참고[:300]}", body_style))
                 story.append(Spacer(1, 3*mm))
         if report_dict.get("불일치_해석"):
-            story.append(Paragraph("불일치 안내: " + report_dict["불일치_해석"], body_style))
+            story.append(Paragraph("【설문-뇌파 불일치 안내】 " + str(report_dict["불일치_해석"])[:600], body_style))
+            story.append(Spacer(1, 4*mm))
+        story.append(Paragraph("【시사점】 위 역량별 해석은 뇌교육 5단계와 BOS 5법칙에 따른 맞춤 안내입니다. 점수가 높은 역량은 강점 리더십으로, 낮은 역량은 뇌 유연화·정화·통합 단계와 BOS 실천으로 보강할 수 있으며, 설문(의식)과 뇌파(무의식) 차이가 있는 역량은 정보 정화·뇌 통합 관점의 훈련을 권장합니다.", body_style))
     else:
         story.append(Paragraph("4대 역량별 통합 지수를 뇌교육·BOS 관점에서 해석한 내용은 웹에서 확인할 수 있습니다.", body_style))
     story.append(Spacer(1, 8*mm))
     story.append(Paragraph("【역량별 개선 참고】 점수가 낮은 역량은 뇌교육 단계와 BOS 실천으로 보강할 수 있습니다.", body_style))
     story.append(PageBreak())
 
-    # ========== 4페이지: 역량별 개선 로드맵 표 + AI 상담 요약 ==========
+    # ========== 4페이지: 뇌파 시각화 요약 + 역량별 로드맵 + AI 상담 요약 ==========
+    eeg_영역별 = combined_result.get("eeg_영역별") or {}
+    if eeg_영역별 and isinstance(eeg_영역별, dict):
+        story.append(Paragraph("뇌파 시각화 요약", heading_style))
+        eeg_names = [
+            ("motivation", "창업공감·동기부여(전두엽 비대칭)"),
+            ("resilience", "창업위기감수·극복(알파파 회복)"),
+            ("innovation", "창업두뇌·계발(SMR/Beta 코히어런스)"),
+            ("responsibility", "주체적·창업의식(전전두엽 안정도)"),
+        ]
+        for key, label in eeg_names:
+            v = eeg_영역별.get(key)
+            if v is not None:
+                story.append(Paragraph(f"· {label}: {float(v):.1f} (0~100)", body_style))
+        story.append(Paragraph("본 수치는 설문 역량 지수와 결합해 통합 지수에 반영되었으며, 웹 대시보드 Step 2·3에서 방사형 도표 및 뇌파 그래프로 확인할 수 있습니다.", body_style))
+        story.append(Spacer(1, 6*mm))
     story.append(Paragraph("역량별 개선 로드맵 (AI 추천)", heading_style))
     try:
         low_domains = [(n, s) for n, s in domain_scores if s < 55]

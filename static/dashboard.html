@@ -167,12 +167,19 @@
               <p class="text-slate-600 text-base">진단을 제출하면 여기에 결과가 표시됩니다.</p>
             </div>
             <div id="result-cards" class="grid gap-4 sm:grid-cols-2 mb-4"></div>
+            <div id="result-domain-table-wrap" class="hidden mb-4 overflow-x-auto">
+              <p class="text-slate-700 font-medium mb-2 text-base">역량별 통합 점수 (4대 영역 정식 명칭)</p>
+              <table id="result-domain-table" class="w-full border border-slate-200 rounded-xl text-base" cellspacing="0" cellpadding="0">
+                <thead><tr class="bg-violet-700 text-white"><th class="text-left py-2 px-3 rounded-tl-xl">영역</th><th class="text-center py-2 px-3 rounded-tr-xl w-28">점수(0~100)</th></tr></thead>
+                <tbody id="result-domain-table-body"></tbody>
+              </table>
+            </div>
             <div id="result-radar-wrap" class="hidden mb-4">
               <p class="text-slate-700 font-medium mb-2 text-base">4대 영역 방사형</p>
               <div class="h-64 sm:h-72 max-w-full"><canvas id="result-radar-chart"></canvas></div>
             </div>
             <div id="result-ai-interpret" class="hidden mb-5 p-4 bg-white rounded-xl border border-slate-200">
-              <p class="text-slate-700 font-medium mb-3 text-lg">AI 해석 — 공감·동기부여·창의·혁신·개방·공생을 통한 자신 깨우기</p>
+              <p class="text-slate-700 font-medium mb-3 text-lg">AI 해석 및 시사점 분석 — 공감·동기부여·창의·혁신·개방·공생을 통한 자신 깨우기</p>
               <div id="result-ai-summary" class="text-slate-600 text-base mb-3"></div>
               <div id="result-ai-domains" class="space-y-2 text-slate-600 text-base"></div>
               <div id="result-ai-extended" class="mt-4 pt-4 border-t border-slate-200 text-slate-600 text-base space-y-3"></div>
@@ -1199,6 +1206,21 @@
         `;
         cards.appendChild(card);
       });
+      // 역량별 통합 점수 표 (4대 영역 정식 명칭)
+      const tableWrap = document.getElementById('result-domain-table-wrap');
+      const tableBody = document.getElementById('result-domain-table-body');
+      if (tableWrap && tableBody) {
+        if (ordered.length > 0) {
+          tableWrap.classList.remove('hidden');
+          tableBody.innerHTML = ordered.map(({ name, d }) => {
+            const score = d.combined_score != null ? d.combined_score : (d.평균점수 != null ? (d.평균점수 - 1) / 4 * 100 : 0);
+            const s = typeof score === 'number' ? score.toFixed(1) : score;
+            return '<tr class="border-t border-slate-200"><td class="py-2 px-3 text-slate-700">' + escapeHtml(name) + '</td><td class="py-2 px-3 text-center font-semibold text-slate-800">' + escapeHtml(String(s)) + '</td></tr>';
+          }).join('');
+        } else {
+          tableWrap.classList.add('hidden');
+        }
+      }
       // 방사형 도표
       const radarWrap = document.getElementById('result-radar-wrap');
       const radarCanvas = document.getElementById('result-radar-chart');

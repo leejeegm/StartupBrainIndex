@@ -83,6 +83,16 @@ def run_full_pipeline(
         return out
     out.timings_ms["3_combined_sbi"] = (time.perf_counter() - t3) * 1000
 
+    eeg_dict = {}
+    try:
+        eeg_dict = {
+            "motivation": getattr(combined.eeg_영역별, "motivation", None),
+            "resilience": getattr(combined.eeg_영역별, "resilience", None),
+            "innovation": getattr(combined.eeg_영역별, "innovation", None),
+            "responsibility": getattr(combined.eeg_영역별, "responsibility", None),
+        }
+    except Exception:
+        pass
     combined_result = {
         "통합지수_0_100": combined.통합지수_0_100,
         "사용된_문항수": combined.사용된_문항수,
@@ -93,6 +103,7 @@ def run_full_pipeline(
             }
             for d in combined.영역별_통합점수
         ],
+        "eeg_영역별": eeg_dict,
     }
     out.combined_result = combined_result
     out.report_dict = report_dict
