@@ -90,6 +90,111 @@ CREATE TABLE IF NOT EXISTS indicator_formulas (
 CREATE INDEX IF NOT EXISTS idx_indicator_sort ON indicator_formulas(sort_order);
 """
 
+# PostgreSQL 스키마 (재배포 시에도 데이터 유지용 외부 DB)
+_POSTGRES_SCHEMA = """
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL,
+    name TEXT,
+    gender TEXT,
+    age INTEGER,
+    occupation TEXT,
+    nationality TEXT,
+    sleep_hours TEXT,
+    sleep_hours_label TEXT,
+    sleep_quality TEXT,
+    meal_habit TEXT,
+    bowel_habit TEXT,
+    exercise_habit TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+
+CREATE TABLE IF NOT EXISTS survey_saves (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    title TEXT NOT NULL,
+    update_count INTEGER NOT NULL DEFAULT 0,
+    responses_json TEXT NOT NULL,
+    required_sequences_json TEXT NOT NULL,
+    excluded_sequences_json TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_survey_user ON survey_saves(user_email);
+CREATE INDEX IF NOT EXISTS idx_survey_created ON survey_saves(created_at);
+
+CREATE TABLE IF NOT EXISTS chat_saves (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    summary_title TEXT NOT NULL,
+    messages_json TEXT NOT NULL,
+    ai_notes_json TEXT,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_chat_user ON chat_saves(user_email);
+CREATE INDEX IF NOT EXISTS idx_chat_created ON chat_saves(created_at);
+
+CREATE TABLE IF NOT EXISTS board (
+    id SERIAL PRIMARY KEY,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_board_type ON board(type);
+
+CREATE TABLE IF NOT EXISTS eeg_saves (
+    id SERIAL PRIMARY KEY,
+    user_email VARCHAR(255) NOT NULL,
+    title TEXT NOT NULL,
+    data_json TEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_eeg_user ON eeg_saves(user_email);
+CREATE INDEX IF NOT EXISTS idx_eeg_created ON eeg_saves(created_at);
+
+CREATE TABLE IF NOT EXISTS indicator_formulas (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_indicator_sort ON indicator_formulas(sort_order);
+"""
+
+
+def _init_postgres(conn) -> None:
+    """PostgreSQL 테이블 생성 (없을 때만). 한 번 연결 시 자동 실행."""
+    with conn.cursor() as cur:
+        cur.execute(_POSTGRES_SCHEMA)
+    conn.commit()
+    # users 프로필 컬럼 추가 (기존 DB 호환)
+    with conn.cursor() as cur:
+        cur.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'users' AND table_schema = 'public'
+        """)
+        cols = [row["column_name"] for row in cur.fetchall()]
+    for col, ctype in [
+        ("name", "TEXT"), ("gender", "TEXT"), ("age", "INTEGER"), ("occupation", "TEXT"), ("nationality", "TEXT"),
+        ("sleep_hours", "TEXT"), ("sleep_hours_label", "TEXT"), ("sleep_quality", "TEXT"),
+        ("meal_habit", "TEXT"), ("bowel_habit", "TEXT"), ("exercise_habit", "TEXT"),
+    ]:
+        if col not in cols:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {col} {ctype}")
+                conn.commit()
+            except Exception:
+                try:
+                    conn.rollback()
+                except Exception:
+                    pass
+
 
 def _load_db_config() -> dict:
     """환경변수 우선, 없으면 db_config.json, 없으면 기본값. engine 추가."""
@@ -193,10 +298,13 @@ def get_conn():
         import psycopg2
         from psycopg2.extras import RealDictCursor
         url = DATABASE_URL
+        if not url:
+            raise RuntimeError("DB_ENGINE=postgres 이면 DATABASE_URL 또는 SUPABASE_DB_URL 환경 변수가 필요합니다.")
         if url.startswith("postgres://"):
             url = "postgresql://" + url[11:]
         conn = psycopg2.connect(url, cursor_factory=RealDictCursor)
         try:
+            _init_postgres(conn)
             yield conn
             conn.commit()
         except Exception:
