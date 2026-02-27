@@ -194,15 +194,54 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
+    name: Optional[str] = None
+    gender: Optional[str] = None
+    age: Optional[int] = None
+    occupation: Optional[str] = None
+    nationality: Optional[str] = None
+    sleep_hours: Optional[Any] = None  # float or str(레이블)
+    sleep_quality: Optional[str] = None
+    meal_habit: Optional[str] = None
+    bowel_habit: Optional[str] = None
+    exercise_habit: Optional[str] = None
+
+
+@app.get("/api/check-email")
+async def api_check_email(email: Optional[str] = None):
+    """가입 전 이메일 검사. 항상 200 + valid/available/message (404·Not Found 미반환)."""
+    try:
+        from user_storage import check_email_for_register
+        result = check_email_for_register(email or "")
+        return result
+    except Exception as e:
+        return {
+            "valid": False,
+            "available": False,
+            "reason": "error",
+            "message": _db_error_message(e) if "connect" in str(e).lower() or "mysql" in str(e).lower() else "이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+        }
 
 
 @app.post("/api/register")
 async def api_register(body: RegisterRequest):
-    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구."""
+    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구. 프로필 필드 포함."""
     try:
         from user_storage import register
-        out = register(body.email.strip(), body.password)
-        return {"ok": True, "email": out["email"], "created_at": out["created_at"]}
+        out = register(
+            body.email.strip(),
+            body.password,
+            name=body.name,
+            gender=body.gender,
+            age=body.age,
+            occupation=body.occupation,
+            nationality=body.nationality,
+            sleep_hours=body.sleep_hours,
+            sleep_quality=body.sleep_quality,
+            meal_habit=body.meal_habit,
+            bowel_habit=body.bowel_habit,
+            exercise_habit=body.exercise_habit,
+        )
+        return {"ok": True, "saved_ok": True, "email": out["email"], "created_at": out["created_at"]}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
