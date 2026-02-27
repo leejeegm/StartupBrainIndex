@@ -1,14 +1,9 @@
 <?php
-require_once __DIR__ . '/load_env.php';
-require_once __DIR__ . '/openai_api.php';
+require_once 'openai_api.php';
 
 header('Content-Type: application/json');
 
 $apiKey = getenv('OPENAI_API_KEY') ?: '';
-if ($apiKey === '') {
-    echo json_encode(['success' => false, 'message' => 'OPENAI_API_KEY가 설정되지 않았습니다. .env 또는 서버 환경 변수를 확인하세요.']);
-    exit;
-}
 
 $input = json_decode(file_get_contents('php://input'), true);
 $imageId = $input['imageId'] ?? '';

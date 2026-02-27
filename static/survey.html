@@ -58,7 +58,7 @@
 
       <div class="mt-10 flex justify-center">
         <button id="submit-btn" disabled class="px-8 py-3 rounded-xl font-semibold bg-slate-300 text-slate-500 cursor-not-allowed">
-          제출 결과 보기 (96문항 모두 응답 후 활성화)
+          진단 결과 보기 (96문항 모두 응답 후 활성화)
         </button>
       </div>
     </section>
@@ -106,7 +106,7 @@
   <script src="/static/sbi-lang.js"></script>
   <script>
     var surveyLang = {
-      ko: { progressLabel: '진행률', title: 'Startup Brain Index : SBI 창업가 뇌 지수 측정', instruction: '각 문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)', submitDisabled: '제출 결과 보기 (96문항 모두 응답 후 활성화)', submitEnabled: '제출 결과 보기', resultTitle: '진단 결과', combinedLabel: 'SBI 통합 지수', scaleLabel: '0 ~ 100', reportTitle: '뇌교육·BOS 관점 해석 리포트', retry: '다시 응답하기', langSwitch: 'EN', submitProgress: '제출 중…' },
+      ko: { progressLabel: '진행률', title: 'Startup Brain Index : SBI 창업가 뇌 지수 측정', instruction: '각 문항에 1~5점으로 응답해 주세요. (1: 매우 그렇지 않다 ~ 5: 매우 그렇다)', submitDisabled: '진단 결과 보기 (96문항 모두 응답 후 활성화)', submitEnabled: '진단 결과 보기', resultTitle: '진단 결과', combinedLabel: 'SBI 통합 지수', scaleLabel: '0 ~ 100', reportTitle: '뇌교육·BOS 관점 해석 리포트', retry: '다시 응답하기', langSwitch: 'EN', submitProgress: '제출 중…' },
       en: { progressLabel: 'Progress', title: 'Startup Brain Index : SBI', instruction: 'Rate each item 1–5. (1: Strongly disagree ~ 5: Strongly agree)', submitDisabled: 'View results (after all 96 items)', submitEnabled: 'View results', resultTitle: 'Diagnosis Result', combinedLabel: 'SBI Combined Index', scaleLabel: '0 ~ 100', reportTitle: 'BOS / Brain Education Report', retry: 'Answer again', langSwitch: '한국어', submitProgress: 'Submitting…' }
     };
     var currentSurveyLang = (window.getSbiLang && window.getSbiLang()) || 'ko';

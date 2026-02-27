@@ -10,9 +10,10 @@ import json
 import sys
 from http.cookiejar import CookieJar
 
-BASE = "http://127.0.0.1:8001"
+# 서버 포트: uvicorn 기본 8000. 8001로 띄웠으면 8001 유지.
+BASE = "http://127.0.0.1:8000"
 ADMIN_EMAIL = "admin@test.com"
-ADMIN_PW = "admin"
+ADMIN_PW = "sunkim5AD@#"
 
 
 def make_opener():

@@ -8,6 +8,7 @@
   <title>Startup Brain Index : SBI 창업가 뇌 지수 측정</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/mobile-common.css" />
   <script>
@@ -26,6 +27,8 @@
     }
   </script>
   <style>
+    /* 한글 자동 호환 폰트 (뇌파 미리보기·저장 목록 내용) */
+    .eeg-korean-font, .eeg-korean-font table, .eeg-korean-font pre { font-family: 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', 'Nanum Gothic', sans-serif !important; }
     /* 모바일·안드로이드: 뷰포트·폰트·터치 */
     html { font-size: clamp(14px, 4vw, 18px); -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     body { font-size: 1rem; min-height: 100vh; font-family: 'Noto Sans KR', sans-serif; -webkit-text-size-adjust: 100%; background: #f8fafc; line-height: 1.6; }
@@ -136,16 +139,18 @@
             </div>
             <div id="unanswered-row" class="hidden flex flex-wrap items-center gap-3 mb-4">
               <div class="px-4 py-2 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm font-medium">현재 미응답 <span id="unanswered-count">0</span>건</div>
-              <button type="button" id="btn-show-unanswered-list" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm hover:bg-slate-100">미응답 번호보기</button>
+              <button type="button" id="btn-show-unanswered-list" class="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm hover:bg-slate-100" aria-expanded="false">응답안한문항 보기</button>
             </div>
             <div id="unanswered-list-box" class="hidden mb-4 p-3 rounded-xl border border-slate-200 bg-slate-50 text-slate-600 text-sm"></div>
-            <div class="flex flex-wrap gap-3 items-center mb-4">
+            <div class="flex flex-wrap gap-3 items-center mb-3">
               <span class="text-slate-600 text-sm font-medium mr-1">전체 설문:</span>
-              <button type="button" id="btn-full-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">전체 96문항</button>
-              <button type="button" id="btn-full-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">선택 71문항</button>
-              <span class="text-slate-600 text-sm font-medium mr-1 ml-2">간편 설문:</span>
-              <button type="button" id="btn-short-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">96문항 중 랜덤</button>
-              <button type="button" id="btn-short-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">71문항 중 랜덤</button>
+              <button type="button" id="btn-full-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">96문항 모형</button>
+              <button type="button" id="btn-full-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">71문항 모형</button>
+            </div>
+            <div class="flex flex-wrap gap-3 items-center mb-4 mt-3 pt-3 border-t border-slate-200">
+              <span class="text-slate-600 text-sm font-medium mr-1">간편 설문:</span>
+              <button type="button" id="btn-short-96" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">96문항 중 24개 랜덤</button>
+              <button type="button" id="btn-short-71" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-100 text-base">71문항 중 24개 랜덤</button>
               <button type="button" id="btn-retry-random" class="px-4 py-2 rounded-xl border border-primary-500 text-primary-600 hover:bg-primary-50 text-base">다시하기 (역량별 랜덤)</button>
               <button type="button" id="btn-survey-load" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-base">불러오기</button>
               <button type="button" id="btn-survey-save-new" class="hidden px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-base">새로저장</button>
@@ -153,7 +158,7 @@
             <div id="questions-container" class="space-y-5 max-h-[55vh] overflow-y-auto pr-2"></div>
             <p id="unanswered-hint" class="hidden mt-2 text-red-600 text-lg"></p>
             <div class="mt-8">
-              <button id="submit-survey-btn" disabled class="px-8 py-4 rounded-xl font-semibold bg-slate-300 text-slate-500 cursor-not-allowed text-lg">제출 결과 보기 (모두 응답 후 활성화)</button>
+              <button id="submit-survey-btn" disabled class="px-8 py-4 rounded-xl font-semibold bg-slate-300 text-slate-500 cursor-not-allowed text-lg">진단 결과 보기 (모두 응답 후 활성화)</button>
             </div>
           </div>
           <!-- Step 2: Result + PDF -->
@@ -179,6 +184,7 @@
             <div class="flex flex-wrap gap-4 items-center">
               <button id="btn-download-pdf" class="hidden px-6 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">PDF 보고서 다운로드</button>
               <a id="link-pdf" href="#" target="_blank" rel="noopener" class="hidden text-lg text-primary-600 underline ml-3">새 창에서 보기</a>
+              <button type="button" data-goto-top class="px-5 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base min-h-[44px]">↑ 위로 가기</button>
             </div>
           </div>
           <!-- Step 3: 뇌파 시각화 -->
@@ -193,15 +199,23 @@
             <!-- 1) 뇌파 원천 데이터 불러오기 -->
             <div class="mb-6 p-4 bg-violet-50 rounded-xl border border-violet-100">
               <p class="text-violet-800 font-medium mb-2 text-base">뇌파 원천 데이터 불러오기</p>
-              <p class="text-slate-600 text-sm mb-2">JSON 또는 CSV 파일을 선택하세요. (예: motivation, resilience, innovation, responsibility 각 0~100)</p>
+              <p class="text-slate-600 text-sm mb-2">JSON, CSV, 엑셀(.xlsx/.xls), 텍스트(.txt) 파일을 선택하세요. (예: motivation, resilience, innovation, responsibility 각 0~100)</p>
               <div class="flex flex-wrap items-center gap-2">
-                <input type="file" id="eeg-file-input" accept=".json,.csv,application/json,text/csv" class="text-sm min-h-[44px]" />
+                <input type="file" id="eeg-file-input" accept=".json,.csv,.xlsx,.xls,.txt,application/json,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/plain" class="text-sm min-h-[44px]" />
                 <button type="button" id="eeg-load-file" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm min-h-[44px]">불러오기</button>
-                <button type="button" id="eeg-save-current" class="hidden px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-sm min-h-[44px]">저장</button>
+                <span id="eeg-save-wrap" class="hidden flex items-center gap-2">
+                  <select id="eeg-save-format" class="px-3 py-2 border border-violet-200 rounded-lg text-sm text-slate-700">
+                    <option value="server">서버에 저장</option>
+                    <option value="csv">CSV 다운로드</option>
+                    <option value="excel">엑셀 다운로드</option>
+                    <option value="text">텍스트 다운로드</option>
+                  </select>
+                  <button type="button" id="eeg-save-current" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-sm min-h-[44px]">저장</button>
+                </span>
                 <button type="button" id="eeg-list-open" class="px-4 py-2 rounded-xl border border-violet-500 text-violet-600 hover:bg-violet-50 text-sm min-h-[44px]">목록보기</button>
               </div>
-              <div id="eeg-preview-wrap" class="hidden mt-4">
-                <p class="text-violet-800 font-medium mb-2 text-sm">불러온 데이터 미리보기 (전체 컬럼, 최대 5케이스)</p>
+              <div id="eeg-preview-wrap" class="hidden mt-4 eeg-korean-font">
+                <p class="text-violet-800 font-medium mb-2 text-sm">불러온 데이터 미리보기 (한글 자동 호환, 최대 5케이스)</p>
                 <div class="border border-violet-200 rounded-xl overflow-auto max-h-48 bg-white">
                   <table id="eeg-preview-table" class="w-full text-sm border-collapse"></table>
                 </div>
@@ -243,11 +257,21 @@
             <div id="eeg-ai-report-wrap" class="p-5 bg-white rounded-xl border-2 border-violet-200">
               <p class="text-violet-800 font-semibold mb-3 text-lg">AI 기반 추가 해석 및 설명 보고서</p>
               <div id="eeg-ai-report" class="text-slate-600 text-base space-y-3"></div>
+              <button type="button" id="eeg-pdf-add-btn" class="mt-4 px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm">PDF 보고서에 추가</button>
+              <p id="eeg-pdf-add-msg" class="hidden mt-2 text-violet-600 text-sm font-medium">그 결과가 반영되었습니다.</p>
+            </div>
+            <div class="mt-4">
+              <button type="button" data-goto-top class="px-5 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base min-h-[44px]">↑ 위로 가기</button>
             </div>
           </div>
           <!-- Step 4: AI Chat -->
           <div id="panel-step4" class="panel-step hidden">
             <p class="text-slate-600 mb-5 text-lg">AI 기반 진단 결과 상담 및 대화</p>
+            <div class="flex gap-3 mb-4">
+              <input type="text" id="chat-input" placeholder="궁금한 점을 입력하세요" class="flex-1 px-5 py-3 border border-slate-300 rounded-xl text-lg" />
+              <button type="button" id="chat-send" class="px-5 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">전송</button>
+            </div>
+            <div id="chat-messages" class="bg-white rounded-xl border border-slate-200 p-5 min-h-[220px] max-h-[380px] overflow-y-auto space-y-4 text-lg mb-4"></div>
             <div id="chat-viz-wrap" class="hidden mb-5 p-4 bg-violet-50 rounded-xl border border-violet-200">
               <p class="text-violet-800 font-semibold mb-3 text-base">역량·뇌파 시각화 (상담 참고용)</p>
               <div class="grid gap-4 md:grid-cols-2">
@@ -275,11 +299,11 @@
               <div id="keyword-result" class="p-3 bg-white rounded-xl border border-slate-200 text-slate-600 text-base min-h-[60px]"></div>
               <button type="button" id="keyword-add-report" class="hidden mt-2 px-4 py-2 rounded-xl bg-accent-500 text-white hover:bg-accent-600 text-sm">보고서에 추가</button>
             </div>
-            <div id="chat-messages" class="bg-white rounded-xl border border-slate-200 p-5 min-h-[220px] max-h-[380px] overflow-y-auto space-y-4 text-lg"></div>
-            <div class="flex gap-3 mt-4">
-              <input type="text" id="chat-input" placeholder="궁금한 점을 입력하세요" class="flex-1 px-5 py-3 border border-slate-300 rounded-xl text-lg" />
-              <button type="button" id="chat-send" class="px-5 py-3 rounded-xl bg-primary-500 text-white hover:bg-primary-600 text-lg">전송</button>
+            <div class="mb-4">
+              <button type="button" id="chat-pdf-add-btn" class="px-4 py-2 rounded-xl bg-violet-600 text-white hover:bg-violet-700 text-sm">AI 상담 요약을 PDF 결과 보고서에 추가</button>
+              <p id="chat-pdf-add-msg" class="hidden mt-2 text-violet-600 text-sm font-medium">그 결과가 반영되었습니다.</p>
             </div>
+            <button type="button" data-goto-top class="px-5 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base min-h-[44px]">↑ 위로 가기</button>
           </div>
           <!-- Step 5: 게시판 및 자료실 -->
           <div id="panel-step5" class="panel-step hidden">
@@ -392,9 +416,10 @@
       <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-violet-100">
         <div class="p-6 border-b border-violet-100">
           <h3 id="modal-eeg-list-title" class="text-xl font-bold text-violet-900">저장된 뇌파 데이터 목록</h3>
-          <p class="mt-2 text-violet-600 text-sm">항목을 클릭하면 현재 화면에 적용됩니다.</p>
+          <p class="mt-2 text-violet-600 text-sm">리스트에서 <strong>제목을 클릭</strong>하면 아래에 내용이 표시됩니다. 불러오기 버튼으로 화면에 적용할 수 있습니다.</p>
         </div>
-        <div id="eeg-saved-list" class="p-4 overflow-y-auto flex-1 space-y-2 min-h-[120px] max-h-[65vh] text-sm text-slate-600"></div>
+            <div id="eeg-saved-list" class="p-4 overflow-y-auto flex-1 space-y-2 min-h-[120px] max-h-[40vh] text-sm text-slate-600"></div>
+        <div id="eeg-saved-detail" class="hidden p-4 border-t border-violet-100 max-h-[25vh] overflow-y-auto bg-slate-50 text-sm eeg-korean-font"></div>
         <div class="p-6 border-t border-slate-200">
           <button type="button" id="modal-eeg-list-close" class="w-full px-4 py-3 rounded-xl border border-violet-200 text-violet-700 hover:bg-violet-50 text-base">닫기</button>
         </div>
@@ -408,7 +433,7 @@
       <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-hidden flex flex-col border border-violet-100">
         <div class="p-6 border-b border-violet-100">
           <h3 id="modal-survey-load-title" class="text-xl font-bold text-violet-900">설문 이력 불러오기</h3>
-          <p class="mt-2 text-violet-600 text-sm">선택 시 Step 2·3·4 결과까지 자동 연동됩니다. (6개월 이내)</p>
+          <p class="mt-2 text-violet-600 text-sm">불러오기 시 결과 보기 화면으로 가지 않습니다. 아래 목록에서 <strong>제목을 클릭</strong>하면 해당 설문 응답만 불러옵니다. (6개월 이내)</p>
           <div class="mt-3 flex gap-2">
             <input type="text" id="survey-load-search" placeholder="[전체설문], [간편설문랜덤] 등 제목 검색" class="flex-1 px-3 py-2 border border-violet-200 rounded-xl text-sm" />
             <button type="button" id="survey-load-search-btn" class="px-3 py-2 rounded-xl bg-violet-600 text-white text-sm hover:bg-violet-700">검색</button>
@@ -992,13 +1017,13 @@
         btn.classList.toggle('hover:bg-primary-700', canSubmit);
         btn.classList.toggle('cursor-pointer', canSubmit);
         if (!canSubmit) {
-          btn.textContent = total > 0 ? '제출 결과 보기 (응답 후 활성화)' : '제출 결과 보기 (문항 불러오는 중…)';
+          btn.textContent = total > 0 ? '진단 결과 보기 (응답 후 활성화)' : '진단 결과 보기 (문항 불러오는 중…)';
           btn.title = total > 0 ? '문항에 먼저 응답해 주세요.' : '문항을 불러오는 중입니다.';
         } else if (missing.length > 0) {
-          btn.textContent = '제출 결과 보기 (미응답 ' + missing.length + '건 제외)';
+          btn.textContent = '진단 결과 보기 (미응답 ' + missing.length + '건 제외)';
           btn.title = '미응답 문항은 제외하고 점수를 계산합니다.';
         } else {
-          btn.textContent = '제출 결과 보기';
+          btn.textContent = '진단 결과 보기';
           btn.title = '';
         }
       }
@@ -1051,16 +1076,19 @@
 
     function toggleUnansweredList() {
       const listBox = document.getElementById('unanswered-list-box');
+      var btn = document.getElementById('btn-show-unanswered-list');
       if (!listBox) return;
       if (listBox.classList.contains('hidden')) {
         listBox.classList.remove('hidden');
         renderUnansweredListBox();
+        if (btn) { btn.setAttribute('aria-expanded', 'true'); btn.textContent = '응답안한문항 접기'; }
       } else {
         listBox.classList.add('hidden');
+        if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.textContent = '응답안한문항 보기'; }
       }
     }
 
-    /** 새로 입력/불러오기/새로 저장/제출 시 미응답 창을 보여 나머지 응답을 확인할 수 있게 함 */
+    /** 미응답 행만 표시. 목록은 기본 닫힘(응답안한문항 보기 클릭 시 토글) */
     function ensureUnansweredVisible() {
       updateProgress();
       const missing = requiredSequences.filter((seq) => responses[seq] == null);
@@ -1068,7 +1096,9 @@
       const unansweredRow = document.getElementById('unanswered-row');
       const listBox = document.getElementById('unanswered-list-box');
       if (unansweredRow) unansweredRow.classList.remove('hidden');
-      if (listBox) { listBox.classList.remove('hidden'); renderUnansweredListBox(); }
+      if (listBox) { listBox.classList.add('hidden'); renderUnansweredListBox(); }
+      var btn = document.getElementById('btn-show-unanswered-list');
+      if (btn) { btn.setAttribute('aria-expanded', 'false'); btn.textContent = '응답안한문항 보기'; }
       if (unansweredRow) unansweredRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
@@ -1337,6 +1367,42 @@
       document.getElementById('badge-step3').classList.remove('hidden');
     }
 
+    /** 엑셀(.xlsx/.xls) 바이너리 파싱 → { columns, rows } */
+    function getEegPreviewFromExcel(ab, filename) {
+      if (typeof XLSX === 'undefined') return null;
+      try {
+        const wb = XLSX.read(ab, { type: 'array', cellNF: false });
+        const first = wb.SheetNames[0];
+        if (!first) return null;
+        const ws = wb.Sheets[first];
+        const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+        if (!aoa || aoa.length < 1) return null;
+        const columns = (aoa[0] || []).map((c) => (c != null ? String(c).trim() : ''));
+        const rows = aoa.slice(1, 6).map((row) => (row || []).map((c) => (c != null ? String(c).trim() : '')));
+        return { columns: columns, rows: rows };
+      } catch (e) { return null; }
+    }
+
+    function parseEegFromExcel(ab) {
+      if (typeof XLSX === 'undefined') return null;
+      try {
+        const wb = XLSX.read(ab, { type: 'array' });
+        const first = wb.SheetNames[0];
+        if (!first) return null;
+        const ws = wb.Sheets[first];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '', raw: false });
+        if (!json || json.length < 1) return null;
+        const row = json[0];
+        const get = (keys) => { for (const k of keys) { const v = row[k]; if (v !== '' && v != null) { const n = parseFloat(v); if (!isNaN(n)) return n; } } return null; };
+        return {
+          motivation: get(['motivation', '창업공감', '동기부여', 'Motivation']) ?? 50,
+          resilience: get(['resilience', '위기감수', '극복', 'Resilience']) ?? 50,
+          innovation: get(['innovation', '두뇌활용', '계발', 'Innovation']) ?? 50,
+          responsibility: get(['responsibility', '주체적', '창업의식', 'Responsibility']) ?? 50
+        };
+      } catch (e) { return null; }
+    }
+
     /** 파일에서 4대 영역 지표 추출 (시각화용) */
     function parseEegFromFile(content, filename) {
       const lower = (filename || '').toLowerCase();
@@ -1351,11 +1417,13 @@
           responsibility: parseFloat(arr.responsibility ?? arr.주체적 ?? arr.창업의식) || 0
         };
       }
-      if (lower.endsWith('.csv')) {
-        const lines = content.trim().split(/\r?\n/);
+      if (lower.endsWith('.csv') || lower.endsWith('.txt')) {
+        const raw = (content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = raw.trim().split('\n').map((l) => l.trim()).filter(Boolean);
         if (lines.length < 2) return null;
-        const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
-        const values = lines[1].split(',').map((v) => (v || '').trim());
+        const sep = lines[0].indexOf('\t') >= 0 ? '\t' : ',';
+        const headers = lines[0].split(sep).map((h) => (h || '').trim().toLowerCase().replace(/^\uFEFF/, ''));
+        const values = lines[1].split(sep).map((v) => (v || '').trim());
         const map = {};
         headers.forEach((h, i) => { map[h] = values[i]; });
         const m = (key) => parseFloat(map[key]) || parseFloat(map['motivation']) || 50;
@@ -1386,11 +1454,13 @@
         }
         return null;
       }
-      if (lower.endsWith('.csv')) {
-        const lines = content.trim().split(/\r?\n/);
+      if (lower.endsWith('.csv') || lower.endsWith('.txt')) {
+        const raw = (content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const lines = raw.trim().split('\n').map((l) => l.trim()).filter(Boolean);
         if (lines.length < 1) return null;
-        const columns = lines[0].split(',').map((h) => h.trim());
-        const rows = lines.slice(1, 6).map((line) => line.split(',').map((c) => (c || '').trim()));
+        const sep = lines[0].indexOf('\t') >= 0 ? '\t' : ',';
+        const columns = lines[0].split(sep).map((h) => (h || '').trim().replace(/^\uFEFF/, ''));
+        const rows = lines.slice(1, 6).map((line) => line.split(sep).map((c) => (c || '').trim()));
         return { columns: columns, rows: rows };
       }
       return null;
@@ -1785,6 +1855,9 @@
     if (adminListRefresh) adminListRefresh.addEventListener('click', loadAdminList);
     var btnGotoTop = document.getElementById('btn-goto-top');
     if (btnGotoTop) btnGotoTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    document.querySelectorAll('[data-goto-top]').forEach(function(btn) {
+      btn.addEventListener('click', function(e) { e.preventDefault(); e.stopPropagation(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    });
     async function openSaveLoadModal() {
       const modal = document.getElementById('modal-save-load');
       if (!modal) return;
@@ -1962,10 +2035,17 @@
           const title = (it.title || '').trim() || ('저장 ' + (it.saved_at || it.created_at || '').slice(0, 16));
           const dateStr = (it.saved_at || it.created_at || '').replace('T', ' ').slice(0, 16);
           const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
-          return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100"><div class="min-w-0 flex-1"><span class="font-medium text-violet-800 block truncate">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-survey shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
+          return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100 survey-load-item" data-id="' + it.id + '"><div class="min-w-0 flex-1 cursor-pointer"><span class="font-medium text-violet-800 block truncate survey-load-title">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-survey shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
         }).join('');
         listEl.querySelectorAll('.btn-load-survey').forEach((btn) => {
-          btn.addEventListener('click', () => loadSurveyById(parseInt(btn.dataset.id, 10)));
+          btn.addEventListener('click', (e) => { e.stopPropagation(); loadSurveyById(parseInt(btn.dataset.id, 10)); });
+        });
+        listEl.querySelectorAll('.survey-load-item').forEach((row) => {
+          row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-load-survey')) return;
+            var id = row.dataset.id;
+            if (id) loadSurveyById(parseInt(id, 10));
+          });
         });
       } catch (e) {
         listEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
@@ -1982,6 +2062,8 @@
         Object.keys(responses).forEach((k) => delete responses[k]);
         Object.entries(loaded).forEach(([k, v]) => { responses[parseInt(k, 10)] = v; });
         requiredSequences = reqSeq;
+        if (data.items && data.items.length) items = data.items;
+        renderQuestions();
         document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
         requiredSequences.forEach((seq) => {
           const score = responses[seq];
@@ -1997,16 +2079,7 @@
         addedSaveCount = 0;
         document.getElementById('btn-survey-save-new').classList.remove('hidden');
         closeSurveyLoadModal();
-        const analyzeRes = await fetch(API_BASE + '/analyze-sbi', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ responses: loaded, excluded_sequences: excluded })
-        });
-        const analyzeData = await analyzeRes.json();
-        if (!analyzeRes.ok) throw new Error(analyzeData.detail || '분석 실패');
-        renderResult(analyzeData);
-        showStep(2);
+        showStep(1);
       } catch (e) {
         alert('불러오기 실패: ' + (e.message || e));
       }
@@ -2150,13 +2223,39 @@
           const title = (it.title || '').trim() || ('뇌파 ' + (it.saved_at || '').slice(0, 16));
           const dateStr = (it.saved_at || '').replace('T', ' ').slice(0, 16);
           const sub = currentUserIsAdmin && it.user_email ? '<span class="text-violet-500 text-xs block">' + escapeHtml(it.user_email) + '</span>' : '';
-          return '<div class="flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100"><div class="min-w-0 flex-1"><span class="font-medium text-violet-800 block truncate">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-eeg shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
+          return '<div class="eeg-list-row flex items-center justify-between gap-2 p-3 bg-violet-50 rounded-xl border border-violet-100 cursor-pointer hover:bg-violet-100" data-id="' + it.id + '"><div class="min-w-0 flex-1"><span class="font-medium text-violet-800 block truncate">' + escapeHtml(title) + '</span>' + sub + '<span class="text-violet-500 text-xs">' + dateStr + '</span></div><button type="button" class="btn-load-eeg shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-sm" data-id="' + it.id + '">불러오기</button></div>';
         }).join('');
         listEl.querySelectorAll('.btn-load-eeg').forEach((btn) => {
-          btn.addEventListener('click', () => loadEegById(parseInt(btn.dataset.id, 10)));
+          btn.addEventListener('click', (e) => { e.stopPropagation(); loadEegById(parseInt(btn.dataset.id, 10)); });
+        });
+        listEl.querySelectorAll('.eeg-list-row').forEach((row) => {
+          row.addEventListener('click', function(e) {
+            if (e.target.closest('.btn-load-eeg')) return;
+            showEegDetailById(parseInt(row.dataset.id, 10));
+          });
         });
       } catch (e) {
         listEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '목록 조회 실패') + '</p>';
+      }
+    }
+    async function showEegDetailById(saveId) {
+      const detailEl = document.getElementById('eeg-saved-detail');
+      if (!detailEl) return;
+      detailEl.innerHTML = '<p class="text-slate-500">불러오는 중…</p>';
+      detailEl.classList.remove('hidden');
+      try {
+        const res = await fetch(API_BASE + '/api/eeg-saved/' + saveId, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || '조회 실패');
+        const d = data.data || {};
+        const lines = [];
+        ['motivation', 'resilience', 'innovation', 'responsibility', 'alpha', 'beta', 'theta', 'delta', 'engagement', 'focus'].forEach((k) => {
+          if (d[k] != null) lines.push(k + ': ' + d[k]);
+        });
+        if (lines.length === 0) lines.push('(데이터 없음)');
+        detailEl.innerHTML = '<p class="font-medium text-violet-800 mb-2">내용</p><pre class="text-slate-700 whitespace-pre-wrap">' + escapeHtml(lines.join('\n')) + '</pre>';
+      } catch (e) {
+        detailEl.innerHTML = '<p class="text-red-500">' + escapeHtml(e.message || '조회 실패') + '</p>';
       }
     }
     async function loadEegById(saveId) {
@@ -2187,25 +2286,49 @@
       const input = document.getElementById('eeg-file-input');
       if (!input.files || !input.files[0]) { alert('파일을 선택하세요.'); return; }
       const f = input.files[0];
+      const nm = (f.name || '').toLowerCase();
+      const isExcel = nm.endsWith('.xlsx') || nm.endsWith('.xls');
+      if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const ab = reader.result;
+            const preview = getEegPreviewFromExcel(ab, f.name);
+            if (preview) renderEegPreview(preview.columns, preview.rows);
+            else document.getElementById('eeg-preview-wrap').classList.add('hidden');
+            const data = parseEegFromExcel(ab);
+            if (!data) { alert('엑셀 첫 시트에 motivation, resilience, innovation, responsibility 또는 한글 열명이 있어야 합니다.'); return; }
+            eegOverride = data;
+            document.getElementById('eeg-input-motivation').value = data.motivation ?? '';
+            document.getElementById('eeg-input-resilience').value = data.resilience ?? '';
+            document.getElementById('eeg-input-innovation').value = data.innovation ?? '';
+            document.getElementById('eeg-input-responsibility').value = data.responsibility ?? '';
+            const saveWrap = document.getElementById('eeg-save-wrap');
+            if (saveWrap) saveWrap.classList.remove('hidden');
+            renderEegPanel();
+          } catch (e) { alert('엑셀 파싱 오류: ' + (e.message || e)); }
+        };
+        reader.readAsArrayBuffer(f);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const preview = getEegFilePreview(reader.result, f.name);
+          const content = (reader.result || '').replace(/^\uFEFF/, '');
+          const preview = getEegFilePreview(content, f.name);
           if (preview) renderEegPreview(preview.columns, preview.rows);
           else document.getElementById('eeg-preview-wrap').classList.add('hidden');
-          const data = parseEegFromFile(reader.result, f.name);
-          if (!data) { alert('JSON/CSV 형식을 확인하세요. (motivation, resilience, innovation, responsibility 또는 한글 키)'); return; }
+          const data = parseEegFromFile(content, f.name);
+          if (!data) { alert('JSON/CSV/텍스트 형식을 확인하세요. (motivation, resilience, innovation, responsibility 또는 한글 키)'); return; }
           eegOverride = data;
           document.getElementById('eeg-input-motivation').value = data.motivation ?? '';
           document.getElementById('eeg-input-resilience').value = data.resilience ?? '';
           document.getElementById('eeg-input-innovation').value = data.innovation ?? '';
           document.getElementById('eeg-input-responsibility').value = data.responsibility ?? '';
-          const saveBtn = document.getElementById('eeg-save-current');
-          if (saveBtn) { saveBtn.classList.remove('hidden'); }
+          const saveWrap = document.getElementById('eeg-save-wrap');
+          if (saveWrap) saveWrap.classList.remove('hidden');
           renderEegPanel();
-        } catch (e) {
-          alert('파일 파싱 오류: ' + (e.message || e));
-        }
+        } catch (e) { alert('파일 파싱 오류: ' + (e.message || e)); }
       };
       reader.readAsText(f, 'UTF-8');
     });
@@ -2235,8 +2358,8 @@
       if (num(delta) != null) eegOverride.delta = num(delta);
       if (num(engagement) != null) eegOverride.engagement = Math.max(0, Math.min(100, num(engagement)));
       if (num(focus) != null) eegOverride.focus = Math.max(0, Math.min(100, num(focus)));
-      const saveBtn = document.getElementById('eeg-save-current');
-      if (saveBtn) saveBtn.classList.remove('hidden');
+      const saveWrap = document.getElementById('eeg-save-wrap');
+      if (saveWrap) saveWrap.classList.remove('hidden');
       renderEegPanel();
       const msgEl = document.getElementById('eeg-apply-message');
       const vizSection = document.getElementById('eeg-viz-section');
@@ -2251,6 +2374,21 @@
     if (eegSaveCurrent) eegSaveCurrent.addEventListener('click', async () => {
       const eeg = getCurrentEeg();
       if (!eeg || typeof eeg !== 'object') { alert('저장할 뇌파 데이터가 없습니다. 파일을 불러오거나 지표를 입력한 뒤 저장하세요.'); return; }
+      const formatSel = document.getElementById('eeg-save-format');
+      const format = (formatSel && formatSel.value) || 'server';
+      if (format === 'csv' || format === 'text') {
+        const keys = ['motivation', 'resilience', 'innovation', 'responsibility', 'alpha', 'beta', 'theta', 'delta', 'engagement', 'focus'];
+        const header = keys.join(',');
+        const row = keys.map((k) => (eeg[k] != null ? eeg[k] : '')).join(',');
+        const content = format === 'csv' ? (header + '\n' + row) : keys.map((k) => k + ': ' + (eeg[k] != null ? eeg[k] : '')).join('\n');
+        const blob = new Blob(['\uFEFF' + content], { type: format === 'csv' ? 'text/csv;charset=utf-8' : 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'eeg_data.' + (format === 'csv' ? 'csv' : 'txt');
+        a.click();
+        URL.revokeObjectURL(a.href);
+        return;
+      }
       try {
         const res = await fetch(API_BASE + '/api/eeg-save', {
           method: 'POST',
@@ -2268,6 +2406,19 @@
           ? '데이터베이스에 연결할 수 없습니다. MySQL 서버가 실행 중인지 확인해 주세요.'
           : errMsg;
         alert('저장 실패: ' + friendly);
+      }
+    });
+    var eegPdfAddBtn = document.getElementById('eeg-pdf-add-btn');
+    if (eegPdfAddBtn) eegPdfAddBtn.addEventListener('click', () => {
+      const reportEl = document.getElementById('eeg-ai-report');
+      const msgEl = document.getElementById('eeg-pdf-add-msg');
+      const text = reportEl ? (reportEl.innerText || reportEl.textContent || '').trim().slice(0, 1500) : '';
+      if (text) {
+        aiConsultationNotes.push('[뇌파·시각화 보고서]\n' + text);
+        if (msgEl) { msgEl.classList.remove('hidden'); setTimeout(() => msgEl.classList.add('hidden'), 3000); }
+        document.getElementById('badge-step4').classList.remove('hidden');
+      } else {
+        alert('적용 및 시각화를 먼저 실행한 뒤 추가해 주세요.');
       }
     });
     var eegListOpen = document.getElementById('eeg-list-open');
@@ -2311,7 +2462,7 @@
     function setSurveyLoadButtonsEnabled(enabled) {
       surveyLoadInProgress = !enabled;
       var ids = ['btn-full-96', 'btn-full-71', 'btn-short-96', 'btn-short-71', 'btn-retry-random', 'btn-survey-load'];
-      var labels = { 'btn-full-96': '전체 96문항', 'btn-full-71': '선택 ' + totalSelected + '문항', 'btn-short-96': '96문항 중 랜덤', 'btn-short-71': totalSelected + '문항 중 랜덤', 'btn-retry-random': '다시하기 (역량별 랜덤)', 'btn-survey-load': '불러오기' };
+      var labels = { 'btn-full-96': '96문항 모형', 'btn-full-71': totalSelected + '문항 모형', 'btn-short-96': '96문항 중 24개 랜덤', 'btn-short-71': totalSelected + '문항 중 24개 랜덤', 'btn-retry-random': '다시하기 (역량별 랜덤)', 'btn-survey-load': '불러오기' };
       ids.forEach(function(id) {
         var btn = document.getElementById(id);
         if (!btn) return;
@@ -2341,6 +2492,8 @@
     }
     async function runRetryRandom() {
       if (surveyLoadInProgress) return;
+      var use96 = confirm('96문항과 71문항 중 선택하여 진단할 수 있습니다.\n\n[확인] 96문항 모형 (24개 랜덤)\n[취소] 71문항 모형 (24개 랜덤)');
+      var mode = use96 ? 'all' : 'selected';
       setSurveyLoadButtonsEnabled(false);
       var retryBtn = document.getElementById('btn-retry-random');
       if (retryBtn) retryBtn.textContent = '불러오는 중…';
@@ -2348,10 +2501,11 @@
         surveyDirty = false;
         loadedSurveyId = null;
         surveyType = 'short_random';
+        currentSurveyMode = mode;
         var saveNewBtn = document.getElementById('btn-survey-save-new');
         if (saveNewBtn) saveNewBtn.classList.add('hidden');
         Object.keys(responses).forEach((k) => delete responses[k]);
-        await loadSurveyItems('random_domain', 0, currentSurveyMode);
+        await loadSurveyItems('random_domain', 1, mode);
         renderQuestions();
         document.querySelectorAll('#questions-container input[type="radio"]').forEach((r) => { r.checked = false; });
         ensureUnansweredVisible();
@@ -2359,6 +2513,7 @@
         alert('문항 불러오기 실패: ' + (e.message || e));
       } finally {
         setSurveyLoadButtonsEnabled(true);
+        if (retryBtn) retryBtn.textContent = '다시하기 (역량별 랜덤)';
       }
     }
     window.__runRetryRandom = runRetryRandom;
@@ -2422,9 +2577,15 @@
         const res = await fetch(API_BASE + '/api/generate-pdf', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ responses, excluded_sequences: excluded, ai_consultation_notes: aiConsultationNotes.length ? aiConsultationNotes : null, include_chat_save_ids: pdfIncludeChatIds.length ? pdfIncludeChatIds : null, user_profile: currentUserProfile || null })
+          credentials: 'same-origin',
+          body: JSON.stringify({ responses, excluded_sequences: excluded, ai_consultation_notes: aiConsultationNotes.length ? aiConsultationNotes : null })
         });
-        if (!res.ok) throw new Error(await res.text());
+        if (!res.ok) {
+          var errText = await res.text();
+          var errMsg = errText;
+          try { var j = JSON.parse(errText); if (j.detail) errMsg = j.detail; } catch (e) {}
+          throw new Error(errMsg);
+        }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         if (lastPdfBlobUrl) URL.revokeObjectURL(lastPdfBlobUrl);
@@ -2447,6 +2608,20 @@
       }
     });
 
+    var chatPdfAddBtn = document.getElementById('chat-pdf-add-btn');
+    if (chatPdfAddBtn) chatPdfAddBtn.addEventListener('click', () => {
+      const messages = getCurrentMessages();
+      const summary = Array.isArray(messages) && messages.length > 0
+        ? messages.slice(-6).map((m) => (m.role === 'user' ? 'Q: ' : 'A: ') + (m.text || m.content || '')).join('\n')
+        : '';
+      if (summary) {
+        aiConsultationNotes.push('[AI 상담 요약]\n' + summary.slice(0, 2000));
+        var msgEl = document.getElementById('chat-pdf-add-msg');
+        if (msgEl) { msgEl.classList.remove('hidden'); setTimeout(function() { msgEl.classList.add('hidden'); }, 3000); }
+      } else {
+        alert('AI 상담 대화 후 추가해 주세요.');
+      }
+    });
     var chatSend = document.getElementById('chat-send');
     if (chatSend) chatSend.addEventListener('click', () => {
       const input = document.getElementById('chat-input');

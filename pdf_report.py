@@ -236,30 +236,33 @@ def generate_sbi_pdf(
     story.append(Paragraph("【AI 기반 역량 점수 시각화】 결과에 연관된 역량별 점수 막대 그래프", heading_style))
     story.append(Spacer(1, 3*mm))
     try:
-        drawing = Drawing(120*mm, 55*mm)
-        bc = VerticalBarChart()
-        bc.x = 30
-        bc.y = 15
-        bc.height = 45*mm
-        bc.width = 100*mm
-        bc.data = [[s for _, s in domain_scores]]
-        bc.strokeColor = colors.HexColor(_PURPLE_ACCENT)
-        bc.fillColor = colors.HexColor(_PURPLE_LIGHT)
-        bc.categoryAxis.labels.boxAnchor = "ne"
-        bc.categoryAxis.categoryNames = [n.split()[0][:4] if n else "" for n, _ in domain_scores]
-        bc.categoryAxis.labels.fontName = font_name
-        bc.categoryAxis.labels.fontSize = 9
-        bc.valueAxis.valueMin = 0
-        bc.valueAxis.valueMax = 100
-        bc.valueAxis.valueStep = 20
-        try:
-            bc.valueAxis.labels.fontName = font_name
-            bc.valueAxis.labels.fontSize = 8
-        except Exception:
-            pass
-        bc.bars[0].fillColor = colors.HexColor(_PURPLE_ACCENT)
-        drawing.add(bc)
-        story.append(drawing)
+        if domain_scores and len(domain_scores) >= 1:
+            drawing = Drawing(120*mm, 55*mm)
+            bc = VerticalBarChart()
+            bc.x = 30
+            bc.y = 15
+            bc.height = 45*mm
+            bc.width = 100*mm
+            bc.data = [[s for _, s in domain_scores]]
+            bc.strokeColor = colors.HexColor(_PURPLE_ACCENT)
+            bc.fillColor = colors.HexColor(_PURPLE_LIGHT)
+            bc.categoryAxis.labels.boxAnchor = "ne"
+            bc.categoryAxis.categoryNames = [(n.split()[0][:4] if n else "") for n, _ in domain_scores]
+            bc.categoryAxis.labels.fontName = font_name
+            bc.categoryAxis.labels.fontSize = 9
+            bc.valueAxis.valueMin = 0
+            bc.valueAxis.valueMax = 100
+            bc.valueAxis.valueStep = 20
+            try:
+                bc.valueAxis.labels.fontName = font_name
+                bc.valueAxis.labels.fontSize = 8
+            except Exception:
+                pass
+            bc.bars[0].fillColor = colors.HexColor(_PURPLE_ACCENT)
+            drawing.add(bc)
+            story.append(drawing)
+        else:
+            story.append(Paragraph("(역량별 점수 데이터가 없습니다. 설문·뇌파 통합 결과를 먼저 생성해 주세요.)", body_style))
     except Exception:
         story.append(Paragraph("(그래프: 4대 영역 순서대로 창업공감·위기감수·두뇌활용·주체적 역량 점수 0~100)", body_style))
     story.append(Spacer(1, 3*mm))
@@ -269,7 +272,8 @@ def generate_sbi_pdf(
     # ========== 3페이지: AI 해석 (영역 순, 하위요소 키워드·검색 근거 반영) ==========
     story.append(Paragraph("AI 해석", heading_style))
     if report_dict:
-        story.append(Paragraph(report_dict.get("요약", ""), body_style))
+        요약 = report_dict.get("요약") or ""
+        story.append(Paragraph(str(요약)[:2000], body_style))
         story.append(Spacer(1, 6*mm))
         역량별 = report_dict.get("역량별", [])
         for name in DOMAIN_ORDER:
@@ -327,7 +331,8 @@ def generate_sbi_pdf(
     story.append(Paragraph("뇌교육 5단계 참고", heading_style))
     try:
         for i, stage in enumerate((BRAIN_STAGES or [])[:5], 1):
-            story.append(Paragraph(f"{i}. {stage}", body_style))
+            text = (stage if isinstance(stage, str) else str(stage))[:200]
+            story.append(Paragraph(f"{i}. {text}", body_style))
             story.append(Spacer(1, 2*mm))
     except Exception:
         story.append(Paragraph("1~5단계: 뇌 감각 깨우기 → 유연화 → 정화 → 통합 → 주인되기", body_style))
@@ -335,7 +340,8 @@ def generate_sbi_pdf(
     story.append(Paragraph("BOS 5법칙 참고", heading_style))
     try:
         for i, law in enumerate((BOS_LAWS or [])[:5], 1):
-            story.append(Paragraph(f"{i}. {law[:80]}…", body_style))
+            text = (law if isinstance(law, str) else str(law))[:80]
+            story.append(Paragraph(f"{i}. {text}…", body_style))
             story.append(Spacer(1, 2*mm))
     except Exception:
         story.append(Paragraph("정신차려라, 굿뉴스, 선택하면 이루어진다, 시간과 공간의 주인, 모든 환경을 디자인하라", body_style))
@@ -343,15 +349,17 @@ def generate_sbi_pdf(
     story.append(Paragraph("추천 콘텐츠 (장산뇌혁신데이터랩)", heading_style))
     for b in knowledge_blog[:3]:
         title = (b.get("title") or b.get("제목", ""))[:60]
-        url = b.get("url") or b.get("url", "")
+        url = b.get("url") or b.get("링크", "") or ""
         story.append(Paragraph(f"블로그: {title}", body_style))
-        story.append(Paragraph(f"  링크: {url}", body_style))
+        if url:
+            story.append(Paragraph(f"  링크: {url}", body_style))
         story.append(Spacer(1, 2*mm))
     for y in knowledge_youtube[:3]:
         title = (y.get("title") or y.get("제목", ""))[:60]
-        url = y.get("url") or y.get("url", "")
+        url = y.get("url") or y.get("링크", "") or ""
         story.append(Paragraph(f"유튜브: {title}", body_style))
-        story.append(Paragraph(f"  링크: {url}", body_style))
+        if url:
+            story.append(Paragraph(f"  링크: {url}", body_style))
         story.append(Spacer(1, 2*mm))
     if not knowledge_blog and not knowledge_youtube:
         story.append(Paragraph("블로그: https://jangsanbrainlab.tistory.com/", body_style))

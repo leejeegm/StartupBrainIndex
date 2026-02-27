@@ -4,8 +4,8 @@ FastAPI 메인 애플리케이션
 import os
 import secrets
 import random
-from fastapi import FastAPI, HTTPException, Request, Depends, Form, File, UploadFile
-from fastapi.responses import FileResponse, RedirectResponse, JSONResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, Form
+from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Optional, Any
 from starlette.middleware.sessions import SessionMiddleware
@@ -21,33 +21,13 @@ from email_coupon import build_coupon_email_for_result, COUPON_EMAIL_THRESHOLD
 # 세션 비밀키 (배포 시 환경변수로 설정 권장)
 SECRET_KEY = os.environ.get("SESSION_SECRET", secrets.token_hex(32))
 # 데모용 사용자 (이메일 -> 비밀번호). 배포 시 DB 등으로 교체.
-USERS_DEMO = {"user@test.com": "pass1234", "admin@test.com": "admin"}
+USERS_DEMO = {"user@test.com": "pass1234", "admin@test.com": "sunkim5AD@#"}
 
 app = FastAPI(
     title="Startup Brain Index : SBI 창업가 뇌 지수 측정",
     description="상상을 현실로, '새로이 창조하는 일'의 셀프 역량 리포트 · 설문 + 뇌파 결합 분석 API",
     version="1.1.0"
 )
-
-
-@app.on_event("startup")
-async def _startup_config_check():
-    """배포 환경 설정 경고 (무상 운영·안전성)."""
-    port = os.environ.get("PORT")
-    if port and not os.environ.get("SESSION_SECRET"):
-        import sys
-        print("[SBI] 경고: SESSION_SECRET이 설정되지 않았습니다. 재시작 시 세션이 초기화됩니다. 환경 변수에 SESSION_SECRET을 설정하세요.", file=sys.stderr)
-    try:
-        from db import DB_ENGINE
-        if DB_ENGINE == "postgres":
-            url = os.environ.get("DATABASE_URL") or os.environ.get("SUPABASE_DB_URL") or ""
-            if not url.strip():
-                import sys
-                print("[SBI] 경고: DB_ENGINE=postgres 이지만 DATABASE_URL이 비어 있습니다. 첫 DB 접속 시 오류가 발생합니다.", file=sys.stderr)
-    except Exception:
-        pass
-
-
 app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY, max_age=86400 * 7)
 
 # 모바일/모든 기기 접속 허용 (User-Agent 차단 없음). 응답 헤더로 명시.
@@ -214,56 +194,14 @@ class LoginRequest(BaseModel):
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    name: Optional[str] = None
-    gender: Optional[str] = None
-    age: Optional[int] = None
-    occupation: Optional[str] = None
-    nationality: Optional[str] = None
-    sleep_hours: Optional[Any] = None
-    sleep_hours_label: Optional[str] = None
-    sleep_quality: Optional[str] = None
-    meal_habit: Optional[str] = None
-    bowel_habit: Optional[str] = None
-    exercise_habit: Optional[str] = None
-
-
-@app.get("/api/check-email")
-async def api_check_email(email: Optional[str] = None):
-    """가입 전 이메일 검사. 항상 200 + valid/available/message (DB 오류 시에도 200)."""
-    e = (email or "").strip().lower()
-    if not e:
-        return {"valid": False, "available": False, "reason": "empty", "message": "이메일을 입력해 주세요."}
-    try:
-        from user_storage import check_email_for_register
-        return check_email_for_register(e)
-    except Exception:
-        return {
-            "valid": False,
-            "available": False,
-            "reason": "error",
-            "message": "일시적으로 이메일 확인을 할 수 없습니다. 잠시 후 다시 시도해 주세요.",
-        }
 
 
 @app.post("/api/register")
 async def api_register(body: RegisterRequest):
-    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503."""
+    """회원 가입. 이메일 중복 시 400. DB 연결 실패 시 503 및 안내 문구."""
     try:
         from user_storage import register
-        out = register(
-            body.email.strip(),
-            body.password,
-            name=body.name,
-            gender=body.gender,
-            age=body.age,
-            occupation=body.occupation,
-            nationality=body.nationality,
-            sleep_hours=body.sleep_hours if body.sleep_hours is not None else body.sleep_hours_label,
-            sleep_quality=body.sleep_quality,
-            meal_habit=body.meal_habit,
-            bowel_habit=body.bowel_habit,
-            exercise_habit=body.exercise_habit,
-        )
+        out = register(body.email.strip(), body.password)
         return {"ok": True, "email": out["email"], "created_at": out["created_at"]}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -479,146 +417,6 @@ def _admin_only(request: Request):
     if not is_admin(user):
         raise HTTPException(status_code=403, detail="관리자만 이용할 수 있습니다.")
     return user
-
-
-# --- 관리자: 배포 전 백업 / 기존 데이터 복원 / 엑셀 내보내기 (SQLite 시 백업·복원) ---
-RESTORE_DB_MAX_BYTES = 50 * 1024 * 1024
-RESTORE_ALLOWED_TABLES = ("users", "survey_saves", "chat_saves", "eeg_saves", "board", "indicator_formulas")
-
-
-@app.post("/api/admin/restore-db")
-async def api_admin_restore_db(request: Request, file: UploadFile = File(...), tables: Optional[str] = Form(None)):
-    """관리자 전용: 백업 .db 업로드 후 복원. tables 비어있으면 전체 교체, 있으면 해당 테이블만 병합."""
-    _admin_only(request)
-    from db import DB_ENGINE
-    if DB_ENGINE != "sqlite":
-        raise HTTPException(status_code=400, detail="현재 DB가 SQLite가 아니므로 이 방식으로 복원할 수 없습니다.")
-    fn = (file.filename or "").strip().lower()
-    if not fn.endswith(".db"):
-        raise HTTPException(status_code=400, detail=".db 파일만 업로드할 수 있습니다.")
-    content = await file.read()
-    if len(content) > RESTORE_DB_MAX_BYTES:
-        raise HTTPException(status_code=400, detail="파일 크기는 50MB 이하여야 합니다.")
-    from db import SQLITE_DB_PATH
-    import tempfile
-    import sqlite3
-    selected = None
-    if tables and (tables := tables.strip()).lower() != "all":
-        parts = [p.strip() for p in tables.split(",") if p.strip()]
-        selected = [p for p in parts if p in RESTORE_ALLOWED_TABLES]
-        if not selected:
-            selected = None
-    tmp = None
-    try:
-        fd, tmp = tempfile.mkstemp(suffix=".db", prefix="sbi_restore_")
-        try:
-            os.write(fd, content)
-        finally:
-            os.close(fd)
-        if selected:
-            conn = sqlite3.connect(SQLITE_DB_PATH)
-            conn.row_factory = sqlite3.Row
-            try:
-                conn.execute("ATTACH DATABASE ? AS bak", (tmp,))
-                for tbl in selected:
-                    try:
-                        cur = conn.execute(f"PRAGMA table_info(bak.{tbl})")
-                        bak_cols = [row[1] for row in cur.fetchall()]
-                        if not bak_cols:
-                            continue
-                        cur = conn.execute(f"PRAGMA table_info(main.{tbl})")
-                        main_cols = [row[1] for row in cur.fetchall()]
-                        common = [c for c in bak_cols if c in main_cols]
-                        if not common:
-                            continue
-                        cols = ", ".join(common)
-                        conn.execute(f"DELETE FROM main.{tbl}")
-                        conn.execute(f"INSERT INTO main.{tbl} ({cols}) SELECT {cols} FROM bak.{tbl}")
-                    except Exception as te:
-                        conn.rollback()
-                        raise HTTPException(status_code=500, detail=f"테이블 {tbl} 복원 실패: {te}")
-                conn.commit()
-            finally:
-                try:
-                    conn.execute("DETACH DATABASE bak")
-                except Exception:
-                    pass
-                conn.close()
-            msg = f"선택한 테이블({', '.join(selected)})이 복원되었습니다."
-        else:
-            os.replace(tmp, SQLITE_DB_PATH)
-            tmp = None
-            msg = "데이터베이스가 전체 복원되었습니다."
-        if tmp and os.path.exists(tmp):
-            try:
-                os.unlink(tmp)
-            except Exception:
-                pass
-        return {"ok": True, "message": msg}
-    except HTTPException:
-        raise
-    except Exception as e:
-        if tmp and os.path.exists(tmp):
-            try:
-                os.unlink(tmp)
-            except Exception:
-                pass
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/api/admin/backup-db")
-async def api_admin_backup_db(request: Request):
-    """관리자 전용: 현재 SQLite DB 파일 다운로드 (배포 전 백업용). SQLite일 때만."""
-    _admin_only(request)
-    from db import DB_ENGINE
-    if DB_ENGINE != "sqlite":
-        raise HTTPException(status_code=400, detail="현재 DB가 SQLite가 아니므로 이 방식으로 백업할 수 없습니다.")
-    from db import SQLITE_DB_PATH
-    if not os.path.isfile(SQLITE_DB_PATH):
-        raise HTTPException(status_code=404, detail="DB 파일이 없습니다.")
-    from datetime import datetime
-    safe_name = f"sbi_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.db"
-    return FileResponse(path=SQLITE_DB_PATH, filename=safe_name, media_type="application/octet-stream")
-
-
-@app.get("/api/admin/export-excel")
-async def api_admin_export_excel(request: Request):
-    """관리자 전용: 회원·설문·상담·뇌파·게시판 등 전체 데이터 엑셀 내보내기 (MySQL/SQLite/Postgres 공통)."""
-    _admin_only(request)
-    import io
-    from datetime import datetime
-    from db import get_conn, execute_all
-    try:
-        with get_conn() as conn:
-            users = execute_all(conn, "SELECT id, email, created_at, name, gender, age, occupation, nationality, sleep_hours, sleep_hours_label, sleep_quality, meal_habit, bowel_habit, exercise_habit FROM users ORDER BY id", ())
-            survey = execute_all(conn, "SELECT id, user_email, title, update_count, responses_json, required_sequences_json, excluded_sequences_json, created_at FROM survey_saves ORDER BY id", ())
-            chat = execute_all(conn, "SELECT id, user_email, summary_title, messages_json, ai_notes_json, created_at FROM chat_saves ORDER BY id", ())
-            eeg = execute_all(conn, "SELECT id, user_email, title, data_json, created_at FROM eeg_saves ORDER BY id", ())
-            board = execute_all(conn, "SELECT id, type, title, content, created_at, updated_at FROM board ORDER BY id", ())
-            formulas = execute_all(conn, "SELECT id, title, content, sort_order, created_at, updated_at FROM indicator_formulas ORDER BY sort_order, id", ())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    _TRUNC = 2000
-    def _trunc(s):
-        if s is None:
-            return ""
-        t = str(s)
-        return t[:_TRUNC] + ("…" if len(t) > _TRUNC else "")
-    def _sheet(rows, truncate_keys=None):
-        truncate_keys = truncate_keys or set()
-        return [{k: _trunc(v) if k in truncate_keys else v for k, v in r.items()} for r in rows] if rows else []
-    import pandas as pd
-    buf = io.BytesIO()
-    with pd.ExcelWriter(buf, engine="openpyxl") as writer:
-        pd.DataFrame(_sheet(users)).to_excel(writer, sheet_name="users", index=False) if users else pd.DataFrame(columns=["id", "email", "created_at"]).to_excel(writer, sheet_name="users", index=False)
-        pd.DataFrame(_sheet(survey, {"responses_json", "required_sequences_json", "excluded_sequences_json"})).to_excel(writer, sheet_name="survey_saves", index=False) if survey else pd.DataFrame(columns=["id", "user_email", "title", "created_at"]).to_excel(writer, sheet_name="survey_saves", index=False)
-        pd.DataFrame(_sheet(chat, {"messages_json", "ai_notes_json"})).to_excel(writer, sheet_name="chat_saves", index=False) if chat else pd.DataFrame(columns=["id", "user_email", "summary_title", "created_at"]).to_excel(writer, sheet_name="chat_saves", index=False)
-        pd.DataFrame(_sheet(eeg, {"data_json"})).to_excel(writer, sheet_name="eeg_saves", index=False) if eeg else pd.DataFrame(columns=["id", "user_email", "title", "created_at"]).to_excel(writer, sheet_name="eeg_saves", index=False)
-        pd.DataFrame(_sheet(board, {"content"})).to_excel(writer, sheet_name="board", index=False) if board else pd.DataFrame(columns=["id", "type", "title", "created_at", "updated_at"]).to_excel(writer, sheet_name="board", index=False)
-        pd.DataFrame(_sheet(formulas, {"content"})).to_excel(writer, sheet_name="indicator_formulas", index=False) if formulas else pd.DataFrame(columns=["id", "title", "sort_order", "created_at", "updated_at"]).to_excel(writer, sheet_name="indicator_formulas", index=False)
-    buf.seek(0)
-    safe_name = f"sbi_data_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    return StreamingResponse(iter([buf.getvalue()]), media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f'attachment; filename="{safe_name}"'})
 
 
 @app.get("/api/admin/tables/{table_name}")
