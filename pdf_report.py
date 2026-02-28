@@ -380,7 +380,7 @@ def generate_sbi_pdf(
         story.append(Paragraph("【역량별 해석】", ParagraphStyle(name="SubHeading", fontName=font_name, fontSize=11, spaceAfter=4, textColor=colors.HexColor(_PURPLE_DARK))))
         역량별 = report_dict.get("역량별", [])
         for name in DOMAIN_ORDER:
-            s = next((x for x in 역량별 if (x.get("영역명") or "") and (_norm(name) in _norm(x.get("영역명") or "") or _norm(x.get("영역명") or "") in _norm(name)), None)
+            s = next((x for x in 역량별 if (x.get("영역명") or "") and (_norm(name) in _norm(x.get("영역명") or "") or _norm(x.get("영역명") or "") in _norm(name))), None)
             if s:
                 해석텍스트 = (s.get("해석") or "").strip()
                 if 해석텍스트:
